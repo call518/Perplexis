@@ -217,13 +217,14 @@ def main():
         with col_pinecone_metric:
             st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
         with col_rag_search_type:
-            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "mmr", "similarity_score_threshold"], disabled=st.session_state['is_analyzed'])
+            # st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity_score_threshold", "similarity", "mmr"], disabled=st.session_state['is_analyzed'])
+            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity_score_threshold"], disabled=st.session_state['is_analyzed'])
         
         col_rag_score, col_rag_top_k = st.sidebar.columns(2)
         with col_rag_score:
-            st.session_state['rag_score'] = st.number_input("RAG Score", min_value=0.01, max_value=1.00, value=0.70, step=0.05, disabled=st.session_state['is_analyzed'])
+            st.session_state['rag_score'] = st.number_input("RAG Score", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
         with col_rag_top_k:
-            st.session_state['rag_top_k'] = st.number_input("RAG TOP-K", min_value=1, value=10, step=1, disabled=st.session_state['is_analyzed'])        
+            st.session_state['rag_top_k'] = st.number_input("RAG TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
 
         if not st.session_state['openai_api_key']:
             st.warning("Please enter the OpenAI API Key.")
@@ -274,7 +275,7 @@ def main():
             st.session_state['google_search_query'] = st.text_input("Google Search Query", placeholder="Enter Your Keywords", disabled=st.session_state['is_analyzed'])
             col_google_search_result_count, col_google_search_result_lang = st.sidebar.columns(2)
             with col_google_search_result_count:
-                st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=5, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])
             with col_google_search_result_lang:
                 st.session_state['google_search_result_lang'] = st.selectbox("Search Language", [ "en", "ko"], disabled=st.session_state['is_analyzed']) 
             
@@ -321,7 +322,7 @@ def main():
                         st.error("[ERROR] 검색 결과가 없습니다.")
                         st.stop()
                     for url in st.session_state['document_source']:
-                        print(f"URL------------------------------------------> {url}")
+                        print(f"Loaded URL ------------------------------------------> {url}")
                         loader = WebBaseLoader(
                             web_paths=(url,),
                         )
@@ -356,6 +357,8 @@ def main():
 
                 ### Debugging Print
                 print(f"documents_and_metadata 개수 ---------------> {len(documents_and_metadata)}")
+                
+                st.write(f"Documents Chunks: {len(documents_and_metadata)}")
 
                 os.environ["PINECONE_API_KEY"] = st.session_state['pinecone_api_key']
                 pc = Pinecone()
@@ -384,7 +387,7 @@ def main():
                 )
                 
                 # 주어진 문서 내용 처리(임베딩)
-                st.session_state['retriever'] = vectorstore.as_retriever(search_type="similarity", k=st.session_state['rag_top_k'], score_threshold=st.session_state['rag_score'])
+                st.session_state['retriever'] = vectorstore.as_retriever(search_type=st.session_state['rag_search_type'], search_kwargs={"k": int(st.session_state['rag_top_k']), "score_threshold": float(st.session_state['rag_score'])})
                 if st.session_state['retriever']:
                     st.success("Embedding 완료!")
                 else:
