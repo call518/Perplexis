@@ -274,7 +274,7 @@ def main():
             st.session_state['google_search_query'] = st.text_input("Google Search Query", placeholder="Enter Your Keywords", disabled=st.session_state['is_analyzed'])
             col_google_search_result_count, col_google_search_result_lang = st.sidebar.columns(2)
             with col_google_search_result_count:
-                st.session_state['google_search_result_count'] = st.number_input("Max Results", min_value=5, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=5, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
             with col_google_search_result_lang:
                 st.session_state['google_search_result_lang'] = st.selectbox("Search Language", [ "en", "ko"], disabled=st.session_state['is_analyzed']) 
             
@@ -286,17 +286,7 @@ def main():
         if st.button("Embedding", disabled=st.session_state['is_analyzed']):
             docs_contents = []
 
-            with st.spinner('Embedding...'):            
-                ### Pinecone API Key 설정 (임시 os.environ 사용, Pinecone(api_key==****) 동작 안함)
-                # pc = Pinecone(api_key=st.session_state['pinecone_api_key'])
-                os.environ["PINECONE_API_KEY"] = st.session_state['pinecone_api_key']
-                pc = Pinecone()
-                pinecone_index_name = 'perplexis'
-
-                # Pinecone Index 초기화 (삭제)
-                if pinecone_index_name in pc.list_indexes().names():
-                    pc.delete_index(pinecone_index_name)
-
+            with st.spinner('Embedding...'):
                 if st.session_state['document_type'] == "URL":
                     # 주요 세션 정보 구성
                     if not st.session_state['document_source']:
@@ -367,6 +357,14 @@ def main():
                 ### Debugging Print
                 print(f"documents_and_metadata 개수 ---------------> {len(documents_and_metadata)}")
 
+                os.environ["PINECONE_API_KEY"] = st.session_state['pinecone_api_key']
+                pc = Pinecone()
+                pinecone_index_name = 'perplexis'
+
+                # Pinecone Index 초기화 (삭제)
+                if pinecone_index_name in pc.list_indexes().names():
+                    pc.delete_index(pinecone_index_name)
+
                 # Pinecone Index 생성
                 pc.create_index(
                     name=pinecone_index_name,
@@ -385,7 +383,7 @@ def main():
                     index_name=pinecone_index_name
                 )
                 
-                # 주어진 URL 문서 내용 처리(임베딩)
+                # 주어진 문서 내용 처리(임베딩)
                 st.session_state['retriever'] = vectorstore.as_retriever(search_type="similarity", k=st.session_state['rag_top_k'], score_threshold=st.session_state['rag_score'])
                 if st.session_state['retriever']:
                     st.success("Embedding 완료!")
