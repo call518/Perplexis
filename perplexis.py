@@ -392,14 +392,17 @@ def main():
             submit_button = st.form_submit_button(label='Send', use_container_width=False, help="Click to send your message", on_click=None, args=None, kwargs=None, disabled=False, icon=":material/send:", type='primary')
 
         if submit_button and user_input:
-            result = st.session_state['conversational_rag_chain'].invoke(
-                {"input": user_input},
-                config={
-                    "configurable": {"session_id": st.session_state['session_id']}
-                },
-            )
+            with st.spinner('Thinking...'):
+                result = st.session_state['conversational_rag_chain'].invoke(
+                    {"input": user_input},
+                    config={
+                        "configurable": {"session_id": st.session_state['session_id']}
+                    },
+                )
 
+            ### Debugging Print
             print(result)
+            
             ai_response = result['answer']
             
             rag_contexts = result.get('context', [])
@@ -427,7 +430,7 @@ def main():
                 llm_model_name = st.session_state['chat_history_llm_model_name'][i]
                 temperature = st.session_state['chat_history_temperature'][i]
                 
-                st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature}")
+                st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(rag_contexts)}")
                 
                 # 소스 데이터 표시
                 rag_contexts = st.session_state["chat_history_rag_contexts"][i]
