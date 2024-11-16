@@ -410,7 +410,7 @@ def main():
                 )
 
             ### Debugging Print
-            print(result)
+            print(f"AI Result: {result}")
             
             ai_response = result['answer']
             
