@@ -179,6 +179,10 @@ qa_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
+# Pinecone 관련 설정
+pc = Pinecone()
+pinecone_index_name = 'perplexis'
+
 #--------------------------------------------------
 
 def main():
@@ -359,10 +363,6 @@ def main():
                 print(f"documents_and_metadata 개수 ---------------> {len(documents_and_metadata)}")
                 
                 st.write(f"Documents Chunks: {len(documents_and_metadata)}")
-
-                os.environ["PINECONE_API_KEY"] = st.session_state['pinecone_api_key']
-                pc = Pinecone()
-                pinecone_index_name = 'perplexis'
 
                 # Pinecone Index 초기화 (삭제)
                 if pinecone_index_name in pc.list_indexes().names():
