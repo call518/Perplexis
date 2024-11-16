@@ -32,3 +32,11 @@ $ pip install -r requirements.txt
 ```bash
 $ streamlit run perplexis.py
 ```
+
+# Screenshots
+
+## Access Web-UI
+
+- http://localhost:8501/
+
+![Access Web-UI](image-001.png)
