@@ -67,7 +67,6 @@ default_values = {
     'chat_history_rag_contexts': [],
     'chat_history_temperature': [],
     'store': {},
-    'is_analyzing': False,
     'is_analyzed': False,
 }
 
@@ -250,11 +249,6 @@ def main():
 
         # 사용자 선택 및 입력값을 기본으로 RAG 데이터 준비
         if st.button("Embedding", disabled=st.session_state['is_analyzed']):
-            st.session_state['is_analyzing'] = True
-            
-            # UI 및 session_state 갱신
-            # st.rerun()
-
             docs = []
             
             if doc_type == "URL":
@@ -287,83 +281,81 @@ def main():
                 del uploaded_file
                 shutil.rmtree(upload_dir)
 
-            # 문서 분할
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=st.session_state['chunk_size'], chunk_overlap=st.session_state['chunk_overlap'])
-            splits = text_splitter.split_documents(docs)
-            print(f"splits ====> 청크 개수: {len(splits)}")
+            with st.spinner('Embedding...'):
+                # 문서 분할
+                text_splitter = RecursiveCharacterTextSplitter(chunk_size=st.session_state['chunk_size'], chunk_overlap=st.session_state['chunk_overlap'])
+                splits = text_splitter.split_documents(docs)
+                print(f"splits ====> 청크 개수: {len(splits)}")
 
-            ### Pinecone API Key 설정 (임시 os.environ 사용, Pinecone(api_key==****) 동작 안함)
-            # pc = Pinecone(api_key=st.session_state['pinecone_api_key'])
-            os.environ["PINECONE_API_KEY"]= st.session_state['pinecone_api_key']
-            pc = Pinecone()
-            pinecone_index_name = 'perplexis'
+                ### Pinecone API Key 설정 (임시 os.environ 사용, Pinecone(api_key==****) 동작 안함)
+                # pc = Pinecone(api_key=st.session_state['pinecone_api_key'])
+                os.environ["PINECONE_API_KEY"]= st.session_state['pinecone_api_key']
+                pc = Pinecone()
+                pinecone_index_name = 'perplexis'
 
-            # 모든 청크 벡터화 및 메타데이터 준비 (for Pinecone에 임베딩)
-            documents_and_metadata = []
-            for i, doc in enumerate(splits):
-                document = Document(
-                    page_content=doc.page_content,
-                    metadata={"id": i + 1, "source": st.session_state['document_url']}
+                # 모든 청크 벡터화 및 메타데이터 준비 (for Pinecone에 임베딩)
+                documents_and_metadata = []
+                for i, doc in enumerate(splits):
+                    document = Document(
+                        page_content=doc.page_content,
+                        metadata={"id": i + 1, "source": st.session_state['document_url']}
+                    )
+                    documents_and_metadata.append(document)
+
+                # Pinecone Index 초기화 (삭제+생성)
+                if pinecone_index_name in pc.list_indexes().names():
+                    pc.delete_index(pinecone_index_name)
+                pc.create_index(
+                    name=pinecone_index_name,
+                    dimension=st.session_state['vectorstore_dimension'],
+                    metric=st.session_state['pinecone_metric'],
+                    spec=ServerlessSpec(
+                        cloud='aws',
+                        region='us-east-1'
+                    )
                 )
-                documents_and_metadata.append(document)
 
-            # Pinecone Index 초기화 (삭제+생성)
-            if pinecone_index_name in pc.list_indexes().names():
-                pc.delete_index(pinecone_index_name)
-            pc.create_index(
-                name=pinecone_index_name,
-                dimension=st.session_state['vectorstore_dimension'],
-                metric=st.session_state['pinecone_metric'],
-                spec=ServerlessSpec(
-                    cloud='aws',
-                    region='us-east-1'
+                # Pinecone Embedding 처리
+                vectorstore = PineconeVectorStore.from_documents(
+                    documents_and_metadata,
+                    st.session_state['embeddings'],
+                    index_name=pinecone_index_name
                 )
-            )
+                
+                # 주어진 URL 문서 내용 처리(임베딩)
+                st.session_state['retriever'] = vectorstore.as_retriever(search_type="similarity", k=st.session_state['rag_top_k'], score_threshold=st.session_state['rag_score'])
+                if st.session_state['retriever']:
+                    st.success("Embedding 완료!")
+                else:
+                    st.error("Embedding 실패!")
+                    st.stop()
 
-            # Pinecone Embedding 처리
-            vectorstore = PineconeVectorStore.from_documents(
-                documents_and_metadata,
-                st.session_state['embeddings'],
-                index_name=pinecone_index_name
-            )
-            
-            # 주어진 URL 문서 내용 처리(임베딩)
-            st.session_state['retriever'] = vectorstore.as_retriever(search_type="similarity", k=st.session_state['rag_top_k'], score_threshold=st.session_state['rag_score'])
-            if st.session_state['retriever']:
-                st.success("Embedding 완료!")
-            else:
-                st.error("Embedding 실패!")
-                st.stop()
+                # RAG Chain 생성
+                history_aware_retriever = create_history_aware_retriever(
+                    st.session_state['llm'],
+                    st.session_state['retriever'],
+                    contextualize_q_prompt
+                )
 
-            # RAG Chain 생성
-            history_aware_retriever = create_history_aware_retriever(
-                st.session_state['llm'],
-                st.session_state['retriever'],
-                contextualize_q_prompt
-            )
+                question_answer_chain = create_stuff_documents_chain(st.session_state['llm'], qa_prompt)
+                rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
-            question_answer_chain = create_stuff_documents_chain(st.session_state['llm'], qa_prompt)
-            rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+                st.session_state['store'] = {}
+                def get_session_history(session_id: str) -> BaseChatMessageHistory:
+                    if session_id not in st.session_state['store']:
+                        st.session_state['store'][session_id] = ChatMessageHistory()
+                    return st.session_state['store'][session_id]
 
-            st.session_state['store'] = {}
-            def get_session_history(session_id: str) -> BaseChatMessageHistory:
-                if session_id not in st.session_state['store']:
-                    st.session_state['store'][session_id] = ChatMessageHistory()
-                return st.session_state['store'][session_id]
+                st.session_state['conversational_rag_chain'] = RunnableWithMessageHistory(
+                    rag_chain,
+                    get_session_history,
+                    input_messages_key="input",
+                    history_messages_key="chat_history",
+                    output_messages_key="answer",
+                )
 
-            st.session_state['conversational_rag_chain'] = RunnableWithMessageHistory(
-                rag_chain,
-                get_session_history,
-                input_messages_key="input",
-                history_messages_key="chat_history",
-                output_messages_key="answer",
-            )
-
-            st.session_state['is_analyzing'] = False
-            st.session_state['is_analyzed'] = True
-            
-            # UI 및 session_state 갱신
-            st.rerun()
+            st.session_state['is_analyzed'] = True            
+            st.rerun() # UI 및 session_state 갱신
 
         if st.session_state.get('is_analyzed', False) == True:
             if st.button("Reset", type='primary'):
@@ -374,7 +366,7 @@ def main():
 
     # 메인 창 로딩 가능 여부(retriever 객체 존재) 확인
     try:
-        if not (st.session_state['retriever'] and st.session_state['session_id']) or st.session_state['is_analyzing']:
+        if not (st.session_state['retriever'] and st.session_state['session_id']) or not st.session_state['is_analyzed']:
             st.stop()
     except Exception as e:
         print(f"[Exception]: {e}")
