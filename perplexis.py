@@ -52,7 +52,7 @@ default_values = {
     'ollama_api_url': "http://localhost:11434",
     'vectorstore_dimension': None,
     'document_type': None,
-    'document_source': None,
+    'document_source': [],
     'embeddings': None,
     'llm': None,
     'selected_embedding': None,
@@ -64,6 +64,9 @@ default_values = {
     'rag_search_type': None,
     'rag_score': None,
     'rag_top_k': None,
+    'google_search_result_count': None,
+    'google_search_result_lang': None,
+    'google_search_query': None,
     'chat_history_user': [],
     'chat_history_ai': [],
     'chat_history_llm_model_name': [],
@@ -77,7 +80,7 @@ def init_session_state():
     for key, value in default_values.items():
         if key not in st.session_state:
             st.session_state[key] = value
-        print(f"[session_state] {key}={st.session_state.get(key, '')}")
+        print(f"[session_state] {key} = {st.session_state.get(key, '')}")
     os.system('rm -rf ./uploads/*')
 
 init_session_state()
@@ -101,16 +104,21 @@ url_pattern = re.compile(
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 def google_search(query, num_results=10, lang="ko"):
+    results_list = []
     try:
         results = search(query, num_results=num_results, lang=lang)
         
         if results:
             for idx, result in enumerate(results, 1):
-                print(f"{idx}. {result}")
+                results_list.append(result)
+                # print(f"{idx}. {result}")
+            return results_list
         else:
             print("검색 결과를 찾을 수 없습니다.")
+            return []
     except Exception as e:
-        print(f"오류 발생: {e}")
+        st.error(f"[ERROR] 오류 발생: {e}")
+        st.stop()
 
 def get_llm_model_name():
     # AI 모델 정보 표시
@@ -215,7 +223,7 @@ def main():
         with col_rag_score:
             st.session_state['rag_score'] = st.number_input("RAG Score", min_value=0.01, max_value=1.00, value=0.70, step=0.05, disabled=st.session_state['is_analyzed'])
         with col_rag_top_k:
-            st.session_state['rag_top_k'] = st.number_input("RAG TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
+            st.session_state['rag_top_k'] = st.number_input("RAG TOP-K", min_value=1, value=10, step=1, disabled=st.session_state['is_analyzed'])        
 
         if not st.session_state['openai_api_key']:
             st.warning("Please enter the OpenAI API Key.")
@@ -251,77 +259,115 @@ def main():
                 temperature=st.session_state['temperature'],
             )
 
-        st.session_state['doc_type'] = st.radio("Document Type", ("URL", "File Upload", "Google Search"), disabled=st.session_state['is_analyzed'])
+        st.session_state['document_type'] = st.radio("Document Type", ("URL", "File Upload", "Google Search"), horizontal=True, disabled=st.session_state['is_analyzed'])
 
-        if st.session_state['doc_type'] == "URL":
-            st.session_state['document_source'] = st.text_input("Document URL", value=st.session_state.get('url', ''), disabled=st.session_state['is_analyzed'])
-        elif st.session_state['doc_type'] == "File Upload":
+        if st.session_state['document_type'] == "URL":
+            st.session_state['document_source'] = [ st.text_input("Document URL", disabled=st.session_state['is_analyzed']) ]
+        elif st.session_state['document_type'] == "File Upload":
             uploaded_file = st.file_uploader("Choose a file")
             if uploaded_file is not None:
                 with open(f"{upload_dir}/{uploaded_file.name}", "wb") as f:
                     f.write(uploaded_file.getbuffer())
                 st.write(f"File uploaded: {uploaded_file.name}")
-                st.session_state['document_source'] = uploaded_file.name
-        # elif doc_type == "Google Search":
+                st.session_state['document_source'].append(uploaded_file.name)
+        elif st.session_state['document_type'] == "Google Search":
+            st.session_state['google_search_query'] = st.text_input("Google Search Query", placeholder="Enter Your Keywords", disabled=st.session_state['is_analyzed'])
+            col_google_search_result_count, col_google_search_result_lang = st.sidebar.columns(2)
+            with col_google_search_result_count:
+                st.session_state['google_search_result_count'] = st.number_input("Max Results", min_value=5, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
+            with col_google_search_result_lang:
+                st.session_state['google_search_result_lang'] = st.selectbox("Search Language", [ "en", "ko"], disabled=st.session_state['is_analyzed']) 
+            
+        else:
+            st.error("[ERROR] Unsupported document type")
+            st.stop()
 
         # 사용자 선택 및 입력값을 기본으로 RAG 데이터 준비
         if st.button("Embedding", disabled=st.session_state['is_analyzed']):
-            docs = []
-            
-            if st.session_state['doc_type'] == "URL":
-                # 주요 세션 정보 구성
-                if not st.session_state['document_source']:
-                    st.error("[ERROR] URL 정보가 없습니다.")
-                    st.stop()
+            docs_contents = []
 
-                if not is_valid_url(st.session_state['document_source']):
-                    st.error("비정상 URL 입니다")
-                    st.stop()
-
-                # 문서 로드 및 분할
-                loader = WebBaseLoader(
-                    web_paths=(st.session_state['document_source'],),
-                )
-                docs = loader.load()
-            
-            if st.session_state['doc_type'] == "File Upload":
-                if uploaded_file is not None:
-                    if uploaded_file.type == "application/pdf":
-                        docs = read_pdf(uploaded_file.name)
-                    elif uploaded_file.type == "text/plain":
-                        docs = read_txt(uploaded_file.name)
-                    else:
-                        st.error("Unsupported file type")
-                        return
-                
-                # 파일 업로드 후, 업로드된 파일 삭제
-                del uploaded_file
-                shutil.rmtree(upload_dir)
-
-            with st.spinner('Embedding...'):
-                # 문서 분할
-                text_splitter = RecursiveCharacterTextSplitter(chunk_size=st.session_state['chunk_size'], chunk_overlap=st.session_state['chunk_overlap'])
-                splits = text_splitter.split_documents(docs)
-                print(f"splits ====> 청크 개수: {len(splits)}")
-
+            with st.spinner('Embedding...'):            
                 ### Pinecone API Key 설정 (임시 os.environ 사용, Pinecone(api_key==****) 동작 안함)
                 # pc = Pinecone(api_key=st.session_state['pinecone_api_key'])
-                os.environ["PINECONE_API_KEY"]= st.session_state['pinecone_api_key']
+                os.environ["PINECONE_API_KEY"] = st.session_state['pinecone_api_key']
                 pc = Pinecone()
                 pinecone_index_name = 'perplexis'
 
-                # 모든 청크 벡터화 및 메타데이터 준비 (for Pinecone에 임베딩)
-                documents_and_metadata = []
-                for i, doc in enumerate(splits):
-                    document = Document(
-                        page_content=doc.page_content,
-                        metadata={"id": i + 1, "source": st.session_state['document_source']}
-                    )
-                    documents_and_metadata.append(document)
-
-                # Pinecone Index 초기화 (삭제+생성)
+                # Pinecone Index 초기화 (삭제)
                 if pinecone_index_name in pc.list_indexes().names():
                     pc.delete_index(pinecone_index_name)
+
+                if st.session_state['document_type'] == "URL":
+                    # 주요 세션 정보 구성
+                    if not st.session_state['document_source']:
+                        st.error("[ERROR] URL 정보가 없습니다.")
+                        st.stop()
+
+                    if not is_valid_url(st.session_state['document_source'][0]):
+                        st.error("[ERROR] 비정상 URL 입니다.")
+                        st.stop()
+                    # 문서 로드 및 분할
+                    loader = WebBaseLoader(
+                        web_paths=(st.session_state['document_source'][0],),
+                    )
+                    docs_contents = loader.load()
+                
+                if st.session_state['document_type'] == "File Upload":
+                    if uploaded_file is not None:
+                        if uploaded_file.type == "application/pdf":
+                            docs_contents = read_pdf(uploaded_file.name)
+                        elif uploaded_file.type == "text/plain":
+                            docs_contents = read_txt(uploaded_file.name)
+                        else:
+                            st.error("[ERROR] Unsupported file type")
+                            st.stop()               
+                    # 파일 업로드 후, 업로드된 파일 삭제
+                    del uploaded_file
+                    shutil.rmtree(upload_dir)
+                
+                if st.session_state['document_type'] == "Google Search":
+                    st.session_state['document_source'] = google_search(st.session_state['google_search_query'], num_results=st.session_state['google_search_result_count'], lang=st.session_state['google_search_result_lang'])
+                    if not st.session_state['document_source']:
+                        st.error("[ERROR] 검색 결과가 없습니다.")
+                        st.stop()
+                    for url in st.session_state['document_source']:
+                        print(f"URL------------------------------------------> {url}")
+                        loader = WebBaseLoader(
+                            web_paths=(url,),
+                        )
+                        docs_contents.append(loader.load())
+
+                # 문서 분할
+                text_splitter = RecursiveCharacterTextSplitter(chunk_size=st.session_state['chunk_size'], chunk_overlap=st.session_state['chunk_overlap'])
+                splits = []
+                if st.session_state['document_type'] == "Google Search":
+                    for doc_contents in docs_contents:
+                        splits.append(text_splitter.split_documents(doc_contents))
+                else:
+                    splits = text_splitter.split_documents(docs_contents)
+
+                # 모든 청크 벡터화 및 메타데이터 준비 (for Pinecone에 임베딩)
+                documents_and_metadata = []
+                if st.session_state['document_type'] == "Google Search":
+                    for i, docs in enumerate(splits):
+                        for j, doc in enumerate(docs):
+                            document = Document(
+                                page_content=doc.page_content,
+                                metadata={"id": j + 1, "source": st.session_state['document_source'][i]}
+                            )
+                            documents_and_metadata.append(document)
+                else:
+                    for i, doc in enumerate(splits):
+                        document = Document(
+                            page_content=doc.page_content,
+                            metadata={"id": i + 1, "source": st.session_state['document_source']}
+                        )
+                        documents_and_metadata.append(document)
+
+                ### Debugging Print
+                print(f"documents_and_metadata 개수 ---------------> {len(documents_and_metadata)}")
+
+                # Pinecone Index 생성
                 pc.create_index(
                     name=pinecone_index_name,
                     dimension=st.session_state['vectorstore_dimension'],
@@ -344,7 +390,7 @@ def main():
                 if st.session_state['retriever']:
                     st.success("Embedding 완료!")
                 else:
-                    st.error("Embedding 실패!")
+                    st.error("[ERROR] Embedding 실패!")
                     st.stop()
 
                 # RAG Chain 생성
