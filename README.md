@@ -39,4 +39,4 @@ $ streamlit run perplexis.py
 
 - http://localhost:8501/
 
-![Access Web-UI](image-001.png)
+![Main Page](etc/image-001.png)
