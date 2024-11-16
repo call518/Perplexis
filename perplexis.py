@@ -1,4 +1,5 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf
+# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf googlesearch-python
+# pip list --format=freeze > requirements.txt
 
 import streamlit as st
 from streamlit_chat import message
@@ -22,6 +23,7 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders import TextLoader
+from googlesearch import search
 
 import os
 import shutil
@@ -49,7 +51,8 @@ default_values = {
     'openai_api_url': "https://api.openai.com/v1",
     'ollama_api_url': "http://localhost:11434",
     'vectorstore_dimension': None,
-    'document_url': None,
+    'document_type': None,
+    'document_source': None,
     'embeddings': None,
     'llm': None,
     'selected_embedding': None,
@@ -97,6 +100,18 @@ url_pattern = re.compile(
     r'(?::\d+)?'  # 포트 번호
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
+def google_search(query, num_results=10, lang="ko"):
+    try:
+        results = search(query, num_results=num_results, lang=lang)
+        
+        if results:
+            for idx, result in enumerate(results, 1):
+                print(f"{idx}. {result}")
+        else:
+            print("검색 결과를 찾을 수 없습니다.")
+    except Exception as e:
+        print(f"오류 발생: {e}")
+
 def get_llm_model_name():
     # AI 모델 정보 표시
     ai_model = st.session_state.get('llm', None)
@@ -129,8 +144,8 @@ def read_pdf(file):
 
 # Contextualize question (질답 히스토리를 이용해, 주어진 질문을 문맥상 정확하고 독립적인 질문으로 보완/재구성 처리해서 반환)
 contextualize_q_system_prompt = (
-    "채팅 기록과 채팅 기록의 맥락을 참조할 수 있는 최신 사용자 질문이 주어지면 채팅 기록 없이도 이해할 수 있는 독립형 질문을 작성하세요. 질문에 대답하지 말고 필요한 경우 다시 작성하고 그렇지 않으면 있는 그대로 반환하십시오."
-    # "Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
+    "Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
+    # "채팅 기록과 사용자가 마지막으로 한 질문이 주어졌을 때, 해당 질문이 채팅 기록의 맥락을 참조할 수 있으므로, 채팅 기록 없이도 이해할 수 있는 독립적인 질문으로 다시 작성하세요. 질문에 답변하지 말고, 필요하다면 질문을 재구성하고, 그렇지 않다면 그대로 반환하세요."
 )
 contextualize_q_prompt = ChatPromptTemplate.from_messages(
     [
@@ -142,8 +157,9 @@ contextualize_q_prompt = ChatPromptTemplate.from_messages(
 
 # QA 시스템 프롬프트 설정 (사용자 질문과, 벡터DB로부터 얻은 결과를 조합해 최종 답변을 작성하기 위한 행동 지침 및 질답 체인 생성)
 system_prompt = (
-    "당신은 질의 응답 작업의 보조자입니다. 다음 검색된 컨텍스트 조각을 사용하여 질문에 답하세요. 답을 모르면 모른다고 말하세요. 최소 3개의 문장을 사용하고 답변은 상세한 정보를 담되 간결하게 유지하세요. (답변은 한국어로 작성하세요.)"
     # "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise."
+    # "당신은 모든 분야에서 전문가 입니다. 다음 검색된 컨텍스트 조각을 사용하여 질문자의 질문에 체계적인 답변을 작성하세요. 답을 모르면 모른다고 말하세요. 최소 50개의 문장을 사용하고 답변은 간결하면서도 최대한 상세한 정보를 포함해야 합니다. (답변은 한국어로 작성하세요.)"
+    "You are an expert in all fields. Using the following retrieved context snippets, formulate a systematic answer to the asker's question. If you don't know the answer, say you don't know. Use at least 50 sentences, and ensure the response is concise yet contains as much detailed information as possible. (The response should be written in Korean.)"
     "\n\n"
     "{context}"
 )
@@ -166,7 +182,7 @@ def main():
         with col_embedding:
             st.session_state['selected_embeddings'] = st.radio("Embedding", ("Ollama", "OpenAI"), disabled=st.session_state['is_analyzed'])
         with col_ai:
-            st.session_state['selected_ai'] = st.radio("AI", ("Ollama", "OpenAI"), disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_ai'] = st.radio("AI", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
 
         st.session_state['openai_api_key'] = st.text_input("OpenAI API Key [Learn more](https://platform.openai.com/docs/quickstart)", value=st.session_state['openai_api_key'], type="password", disabled=st.session_state['is_analyzed'])
         st.session_state['openai_api_url'] = st.text_input("OpenAI API URL", value=st.session_state['openai_api_url'], disabled=st.session_state['is_analyzed'])
@@ -197,7 +213,7 @@ def main():
         
         col_rag_score, col_rag_top_k = st.sidebar.columns(2)
         with col_rag_score:
-            st.session_state['rag_score'] = st.number_input("RAG Score", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
+            st.session_state['rag_score'] = st.number_input("RAG Score", min_value=0.01, max_value=1.00, value=0.70, step=0.05, disabled=st.session_state['is_analyzed'])
         with col_rag_top_k:
             st.session_state['rag_top_k'] = st.number_input("RAG TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
 
@@ -235,39 +251,40 @@ def main():
                 temperature=st.session_state['temperature'],
             )
 
-        doc_type = st.radio("Document Type", ("URL", "File Upload"), disabled=st.session_state['is_analyzed'])
+        st.session_state['doc_type'] = st.radio("Document Type", ("URL", "File Upload", "Google Search"), disabled=st.session_state['is_analyzed'])
 
-        if doc_type == "URL":
-            st.session_state['document_url'] = st.text_input("Document URL", value=st.session_state.get('url', ''), disabled=st.session_state['is_analyzed'])
-        elif doc_type == "File Upload":
+        if st.session_state['doc_type'] == "URL":
+            st.session_state['document_source'] = st.text_input("Document URL", value=st.session_state.get('url', ''), disabled=st.session_state['is_analyzed'])
+        elif st.session_state['doc_type'] == "File Upload":
             uploaded_file = st.file_uploader("Choose a file")
             if uploaded_file is not None:
                 with open(f"{upload_dir}/{uploaded_file.name}", "wb") as f:
                     f.write(uploaded_file.getbuffer())
                 st.write(f"File uploaded: {uploaded_file.name}")
-                st.session_state['document_url'] = uploaded_file.name
+                st.session_state['document_source'] = uploaded_file.name
+        # elif doc_type == "Google Search":
 
         # 사용자 선택 및 입력값을 기본으로 RAG 데이터 준비
         if st.button("Embedding", disabled=st.session_state['is_analyzed']):
             docs = []
             
-            if doc_type == "URL":
+            if st.session_state['doc_type'] == "URL":
                 # 주요 세션 정보 구성
-                if not st.session_state['document_url']:
+                if not st.session_state['document_source']:
                     st.error("[ERROR] URL 정보가 없습니다.")
                     st.stop()
 
-                if not is_valid_url(st.session_state['document_url']):
+                if not is_valid_url(st.session_state['document_source']):
                     st.error("비정상 URL 입니다")
                     st.stop()
 
                 # 문서 로드 및 분할
                 loader = WebBaseLoader(
-                    web_paths=(st.session_state['document_url'],),
+                    web_paths=(st.session_state['document_source'],),
                 )
                 docs = loader.load()
             
-            if doc_type == "File Upload":
+            if st.session_state['doc_type'] == "File Upload":
                 if uploaded_file is not None:
                     if uploaded_file.type == "application/pdf":
                         docs = read_pdf(uploaded_file.name)
@@ -298,7 +315,7 @@ def main():
                 for i, doc in enumerate(splits):
                     document = Document(
                         page_content=doc.page_content,
-                        metadata={"id": i + 1, "source": st.session_state['document_url']}
+                        metadata={"id": i + 1, "source": st.session_state['document_source']}
                     )
                     documents_and_metadata.append(document)
 
@@ -422,13 +439,13 @@ def main():
                 llm_model_name = st.session_state['chat_history_llm_model_name'][i]
                 temperature = st.session_state['chat_history_temperature'][i]
                 
-                st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(rag_contexts)}")
+                st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['chat_history_rag_contexts'][-1])}")
+                st.write(f"RAG Search Type: {st.session_state.get('rag_search_type', 'Unknown')} / RAG Score: {st.session_state.get('rag_score', "Unknown")} / RAG TOP-K: {st.session_state.get('rag_top_k', "Unknown")} / Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
                 
                 # 소스 데이터 표시
-                rag_contexts = st.session_state["chat_history_rag_contexts"][i]
-                if rag_contexts:
+                if st.session_state["chat_history_rag_contexts"][i]:
                     with st.expander("Show Contexts"):
-                        for context in rag_contexts:
+                        for context in st.session_state["chat_history_rag_contexts"][i]:
                             st.write(context)
 
 #----------------------------------------------------
