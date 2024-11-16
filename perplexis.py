@@ -55,7 +55,12 @@ default_values = {
     'selected_embedding': None,
     'selected_ai': None,
     'temperature': 0.00,
+    'chunk_size': None,
+    'chunk_overlap': None,
     'retriever': None,
+    'rag_search_type': None,
+    'rag_score': None,
+    'rag_top_k': None,
     'chat_history_user': [],
     'chat_history_ai': [],
     'chat_history_llm_model_name': [],
@@ -125,7 +130,7 @@ def read_pdf(file):
 
 # Contextualize question (질답 히스토리를 이용해, 주어진 질문을 문맥상 정확하고 독립적인 질문으로 보완/재구성 처리해서 반환)
 contextualize_q_system_prompt = (
-    "채팅 기록과 채팅 기록의 맥락을 참조할 수 있는 최신 사용자 질문이 주어지면 채팅 기록 없이도 이해할 수 있는 독립형 질문을 작성하세요. 질문에 대답하지 말고 필요한 경우 다시 작성하고 그렇지 않으면 있는 그대로 반환하십시오. (답변은 한국어로 작성하세요.)"
+    "채팅 기록과 채팅 기록의 맥락을 참조할 수 있는 최신 사용자 질문이 주어지면 채팅 기록 없이도 이해할 수 있는 독립형 질문을 작성하세요. 질문에 대답하지 말고 필요한 경우 다시 작성하고 그렇지 않으면 있는 그대로 반환하십시오."
     # "Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
 )
 contextualize_q_prompt = ChatPromptTemplate.from_messages(
@@ -158,21 +163,44 @@ def main():
     with st.sidebar:
         st.title("Parameters")
 
-        st.session_state['selected_embeddings'] = st.sidebar.radio("Embedding", ("Ollama", "OpenAI"), disabled=st.session_state['is_analyzed'])
-        st.session_state['selected_ai'] = st.sidebar.radio("AI", ("Ollama", "OpenAI"), disabled=st.session_state['is_analyzed'])
+        col_embedding, col_ai = st.sidebar.columns(2)
+        with col_embedding:
+            st.session_state['selected_embeddings'] = st.radio("Embedding", ("Ollama", "OpenAI"), disabled=st.session_state['is_analyzed'])
+        with col_ai:
+            st.session_state['selected_ai'] = st.radio("AI", ("Ollama", "OpenAI"), disabled=st.session_state['is_analyzed'])
 
         st.session_state['openai_api_key'] = st.text_input("OpenAI API Key [Learn more](https://platform.openai.com/docs/quickstart)", value=st.session_state['openai_api_key'], type="password", disabled=st.session_state['is_analyzed'])
         st.session_state['openai_api_url'] = st.text_input("OpenAI API URL", value=st.session_state['openai_api_url'], disabled=st.session_state['is_analyzed'])
         st.session_state['ollama_api_url'] = st.text_input("Ollama API URL", value=st.session_state['ollama_api_url'], disabled=st.session_state['is_analyzed'])
         st.session_state['pinecone_api_key'] = st.text_input("Pinecone API Key [Learn more](https://www.pinecone.io/docs/quickstart/)", value=st.session_state['pinecone_api_key'], type="password", disabled=st.session_state['is_analyzed'])
-        
-        if st.session_state['selected_ai'] == "OpenAI":
-            st.session_state['selected_llm'] = st.sidebar.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], disabled=st.session_state['is_analyzed'])
-        else:
-            st.session_state['selected_llm'] = st.sidebar.selectbox("AI LLM", ["gemma2", "mistral", "llama3.2", "codegemma"], disabled=st.session_state['is_analyzed'])
 
-        # st.session_state['temperature'] = st.text_input("LLM Temperature (0.0 ~ 1.0)", value=st.session_state['temperature'])
-        st.session_state['temperature'] = st.number_input("AI LLM Temperature (0.00 ~ 1.00)", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05, disabled=st.session_state['is_analyzed'])
+        col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
+        with col_ai_llm:
+            if st.session_state['selected_ai'] == "OpenAI":
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], disabled=st.session_state['is_analyzed'])
+            else:
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2", "mistral", "llama3.2", "codegemma"], disabled=st.session_state['is_analyzed'])
+        with col_ai_temperature:
+            # st.session_state['temperature'] = st.text_input("LLM Temperature (0.0 ~ 1.0)", value=st.session_state['temperature'])
+            st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05, disabled=st.session_state['is_analyzed'])
+        
+        col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
+        with col_chunk_size:
+            st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=1000, max_value=5000, value=2000, step=500, disabled=st.session_state['is_analyzed'])
+        with col_chunk_overlap:
+            st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=100, max_value=500, value=200, step=100, disabled=st.session_state['is_analyzed'])
+
+        col_pinecone_metric, col_rag_search_type = st.sidebar.columns(2)
+        with col_pinecone_metric:
+            st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
+        with col_rag_search_type:
+            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "mmr", "similarity_score_threshold"], disabled=st.session_state['is_analyzed'])
+        
+        col_rag_score, col_rag_top_k = st.sidebar.columns(2)
+        with col_rag_score:
+            st.session_state['rag_score'] = st.number_input("RAG Score", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
+        with col_rag_top_k:
+            st.session_state['rag_top_k'] = st.number_input("RAG TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
 
         if not st.session_state['openai_api_key']:
             st.warning("Please enter the OpenAI API Key.")
@@ -260,7 +288,7 @@ def main():
                 shutil.rmtree(upload_dir)
 
             # 문서 분할
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=st.session_state['chunk_size'], chunk_overlap=st.session_state['chunk_overlap'])
             splits = text_splitter.split_documents(docs)
             print(f"splits ====> 청크 개수: {len(splits)}")
 
@@ -285,7 +313,7 @@ def main():
             pc.create_index(
                 name=pinecone_index_name,
                 dimension=st.session_state['vectorstore_dimension'],
-                metric="cosine",
+                metric=st.session_state['pinecone_metric'],
                 spec=ServerlessSpec(
                     cloud='aws',
                     region='us-east-1'
@@ -300,7 +328,7 @@ def main():
             )
             
             # 주어진 URL 문서 내용 처리(임베딩)
-            st.session_state['retriever'] = vectorstore.as_retriever(search_type="similarity", k=10, score_threshold=0.8)
+            st.session_state['retriever'] = vectorstore.as_retriever(search_type="similarity", k=st.session_state['rag_top_k'], score_threshold=st.session_state['rag_score'])
             if st.session_state['retriever']:
                 st.success("Embedding 완료!")
             else:
@@ -338,7 +366,7 @@ def main():
             st.rerun()
 
         if st.session_state.get('is_analyzed', False) == True:
-            if st.button("Reset"):
+            if st.button("Reset", type='primary'):
                 # reset_force()
                 streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
@@ -375,9 +403,11 @@ def main():
             ai_response = result['answer']
             
             rag_contexts = result.get('context', [])
-            print("RAG 데이터:")
-            for context in rag_contexts:
-                print(context)
+            
+            ### Debugging Print
+            # print("<RAG 데이터>")
+            # for context in rag_contexts:
+            #     print(context)
 
             llm_model_name = get_llm_model_name()
 
