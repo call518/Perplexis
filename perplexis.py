@@ -232,6 +232,7 @@ def main():
         os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
         
         os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+        
         st.session_state['pinecone_index_reset'] = st.checkbox("Reset Pinecone Index", value=st.session_state.get('pinecone_index_reset', False), disabled=st.session_state['is_analyzed'])
 
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
@@ -266,11 +267,11 @@ def main():
             with col_rag_arg2:
                 st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "similarity":
-            st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
+            st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=10, step=1, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "mmr":
             col_rag_arg1, col_rag_arg2, col_rag_arg3 = st.sidebar.columns(3)
             with col_rag_arg1:
-                st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=10, step=1, disabled=st.session_state['is_analyzed'])
             with col_rag_arg2:
                 st.session_state['rag_fetch_k'] = st.number_input("Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
             with col_rag_arg3:
@@ -411,7 +412,7 @@ def main():
                         documents_and_metadata.append(document)
 
                 ### Debugging Print
-                print(f"documents_and_metadata 개수 ---------------> {len(documents_and_metadata)}")
+                print(f"documents_and_metadata chunks ---------------> {len(documents_and_metadata)}")
                 
                 st.write(f"Documents Chunks: {len(documents_and_metadata)}")
 
@@ -523,6 +524,7 @@ def main():
             """,
             unsafe_allow_html=True,
         )
+        st.write("")
 
     # 메인 창 로딩 가능 여부(retriever 객체 존재) 확인
     try:
