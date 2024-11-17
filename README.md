@@ -9,16 +9,25 @@
 
 # Configure & Run
 
-## Setup API Keys
+## Setup Default API Keys (Optional)
+
+You can be entered directly in the Web-UI, or pre-configured as shown below.
 
 ```bash
 $ cp -a .streamlit.template .streamlit
 
 $ vi .streamlit/secrets.toml
-# Update each API key with your own value
+### Update each API keys and BASE URLs with your own value
+### LANGCHAIN_API_KEY is not mandatory 
+
 [KEYS]
+### (Mandatory)
+OLLAMA_BASE_URL = "{your ollama api server base url}"
+OPENAI_BASE_URL = "https://api.openai.com/v1"
 OPENAI_API_KEY = "{your openai api key}"
 PINECONE_API_KEY = "{your pinecone api key}"
+
+### (Optional)
 LANGCHAIN_API_KEY = "{your langchain api key}"
 ```
 
