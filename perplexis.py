@@ -99,6 +99,7 @@ default_values = {
     'chat_history_temperature': [],
     'chat_history_rag_search_type': [],
     'chat_history_rag_top_k': [],
+    'chat_history_rag_score': [],
     'chat_history_rag_fetch_k': [],
     'chat_history_rag_rag_lambda_mult': [],
     'store': {},
@@ -434,7 +435,7 @@ def main():
                 elif st.session_state['rag_search_type'] == "similarity":
                     search_kwargs = {"k": int(st.session_state['rag_top_k'])}
                 elif st.session_state['rag_search_type'] == "mmr":
-                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "fetch_k": 20, "lambda_mult": 0.5}
+                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "fetch_k": int(st.session_state['rag_fetch_k']), "lambda_mult": float(st.session_state['rag_lambda_mult'])}
                 st.session_state['retriever'] = vectorstore.as_retriever(search_type=st.session_state['rag_search_type'], search_kwargs=search_kwargs)
                 
                 if st.session_state['retriever']:
@@ -525,6 +526,11 @@ def main():
             st.session_state['chat_history_temperature'].append(st.session_state['temperature'])
             st.session_state['chat_history_rag_search_type'].append(st.session_state.get('rag_search_type', 'Unknown'))
             st.session_state['chat_history_rag_top_k'].append(st.session_state.get('rag_top_k', 'Unknown'))
+            if st.session_state.get('rag_search_type', 'Unknown') == "similarity_score_threshold":
+                curr_rag_score = st.session_state.get('rag_score', 'Unknown')
+            else:
+                curr_rag_score = "Unknown"
+            st.session_state['chat_history_rag_score'].append(curr_rag_score)
             st.session_state['chat_history_rag_fetch_k'].append(st.session_state.get('rag_fetch_k', 'Unknown'))
             st.session_state['chat_history_rag_rag_lambda_mult'].append(st.session_state.get('rag_lambda_mult', 'Unknown'))
 
