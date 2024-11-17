@@ -4,6 +4,8 @@
 import streamlit as st
 from streamlit_chat import message
 from streamlit_js_eval import streamlit_js_eval
+from streamlit import runtime
+from streamlit.runtime.scriptrunner import get_script_run_ctx
 import uuid
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -45,9 +47,30 @@ if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
 st.set_page_config(page_title="Perplexis", page_icon=":books:", layout="wide")
 st.title(":books: _:red[[Perplexis](https://github.com/call518/Perplexis)]_")
 
+# (임시) Session ID값으로 Client IP를 사용 (추후 ID/PW 시스템으로 변경 필요)
+def get_remote_ip() -> str:
+    """Get remote ip."""
+
+    try:
+        ctx = get_script_run_ctx()
+        if ctx is None:
+            st.error(f"[ERROR] Client IP 확인 오류 발생: ctx is None")
+            st.stop()
+
+        session_info = runtime.get_instance().get_client(ctx.session_id)
+        print(session_info.request)
+        if session_info is None:
+            st.error(f"[ERROR] Client IP 확인 오류 발생: session_info is None")
+            st.stop()
+    except Exception as e:
+        st.error(f"[ERROR] Client IP 확인 오류 발생: {e}")
+        st.stop()
+
+    return session_info.request.remote_ip
+
 # Initialize session state with default values
 default_values = {
-    'session_id': str(uuid.uuid4()),
+    'session_id': get_remote_ip(),
     'is_analyzed': False,
     'vectorstore_dimension': None,
     'document_type': None,
