@@ -70,6 +70,7 @@ def get_remote_ip() -> str:
 
 # Initialize session state with default values
 default_values = {
+    # 'session_id': str(uuid.uuid4()),
     'session_id': get_remote_ip(),
     'is_analyzed': False,
     'vectorstore_dimension': None,
