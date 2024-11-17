@@ -205,7 +205,7 @@ system_prompt = (
     # "당신은 모든 분야에서 전문가 입니다. 다음 검색된 컨텍스트 조각을 사용하여 질문자의 질문에 체계적인 답변을 작성하세요. 답을 모르면 모른다고 말하세요. 최소 50개의 문장을 사용하고 답변은 간결하면서도 최대한 상세한 정보를 포함해야 합니다. (답변은 한국어로 작성하세요.)"
     # "You are an expert in all fields. Using the following retrieved context snippets, formulate a systematic answer to the asker's question. If you don't know the answer, say you don't know. Use at least 50 sentences, and ensure the response is concise yet contains as much detailed information as possible. (The response should be written in Korean.)"
     # "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible. (Write the answer in Korean.)"
-    "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible. When there is no context data available to use for the question, inform about that before answering. (Write the answer in Korean.)"
+    "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible. (Write the answer in Korean.)"
     "\n\n"
     "{context}"
 )
