@@ -242,7 +242,7 @@ def main():
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
         with col_ai_llm:
             if st.session_state['selected_ai'] == "OpenAI":
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4,  disabled=st.session_state['is_analyzed'])
             else:
                 st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2", "mistral", "llama3.2", "codegemma"], disabled=st.session_state['is_analyzed'])
         with col_ai_temperature:
@@ -262,14 +262,14 @@ def main():
         with col_pinecone_metric:
             st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
         with col_rag_search_type:
-            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], disabled=st.session_state['is_analyzed'])
+            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=1, disabled=st.session_state['is_analyzed'])
         
         if st.session_state['rag_search_type'] == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
             with col_rag_arg1:
                 st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
             with col_rag_arg2:
-                st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.65, step=0.05, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "similarity":
             st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "mmr":
@@ -536,7 +536,7 @@ def main():
             st.stop()
     except Exception as e:
         print(f"[Exception]: {e}")
-        st.markdown("Please enter the required information in the left sidebar.")
+        st.error("Please enter the required information in the left sidebar.")
         st.stop()
 
     ## Container 선언 순서가 화면에 보여지는 순서 결정
