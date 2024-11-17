@@ -71,7 +71,7 @@ def get_remote_ip() -> str:
 # Initialize session state with default values
 default_values = {
     'session_id': str(uuid.uuid4()),
-    # 'session_id': get_remote_ip(),
+    'client_remote_ip' : get_remote_ip(),
     'is_analyzed': False,
     'vectorstore_dimension': None,
     'document_type': None,
@@ -84,6 +84,7 @@ default_values = {
     'chunk_size': None,
     'chunk_overlap': None,
     'retriever': None,
+    'pinecone_index_reset': False,
     'rag_search_type': None,
     'rag_score': None,
     'rag_top_k': None,
@@ -127,6 +128,7 @@ url_pattern = re.compile(
     r'(?::\d+)?'  # 포트 번호
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
+### Google Search 처리, URL 목록 반환
 def google_search(query, num_results=10, lang="ko"):
     results_list = []
     try:
@@ -134,8 +136,10 @@ def google_search(query, num_results=10, lang="ko"):
         
         if results:
             for idx, result in enumerate(results, 1):
-                results_list.append(result)
-                # print(f"{idx}. {result}")
+                # PDF 링크 제외
+                if not result.lower().endswith(".pdf"):
+                    results_list.append(result)
+                    # print(f"{idx}. {result}")
             return results_list
         else:
             st.error("No search results found.")
@@ -144,6 +148,7 @@ def google_search(query, num_results=10, lang="ko"):
         st.error(f"[ERROR] {e}")
         st.stop()
 
+### AI 모델 정보 반환
 def get_llm_model_name():
     # AI 모델 정보 표시
     ai_model = st.session_state.get('llm', None)
@@ -153,6 +158,7 @@ def get_llm_model_name():
         llm_model_name = "Unknown LLM"
     return llm_model_name
 
+### URL 유효성 검사
 def is_valid_url(url):
     return re.match(url_pattern, url) is not None
 
@@ -160,6 +166,7 @@ def is_valid_url(url):
 # pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
 # pinecone_index_name = 'perplexis'
 
+### 파일 업로드 후, 업로드된 파일 프로세싱
 def read_txt(file):
     # upload_dir = f"./uploads/{st.session_state['session_id']}"
     loader = TextLoader(f"{upload_dir}/{file}")
@@ -167,6 +174,7 @@ def read_txt(file):
     # shutil.rmtree(upload_dir)
     return docs
 
+### 파일 업로드 후, 업로드된 파일 프로세싱
 def read_pdf(file):
     # upload_dir = f"./uploads/{st.session_state['session_id']}"
     loader = PyPDFLoader(f"{upload_dir}/{file}")
@@ -219,9 +227,12 @@ def main():
             st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
 
         os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+        
         os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
         os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
+        
         os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+        st.session_state['pinecone_index_reset'] = st.checkbox("Reset Pinecone Index", value=st.session_state.get('pinecone_index_reset', False), disabled=st.session_state['is_analyzed'])
 
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
         with col_ai_llm:
@@ -406,22 +417,36 @@ def main():
 
                 # Pinecone 관련 설정
                 pc = Pinecone()
+                
+                ### Pinecone Index Name 설정 : 단순/동일한 이름 사용
                 pinecone_index_name = 'perplexis'
+                
+                ### Pinecone Index Name 설정 : Google Search Query 또는 URL 정보를 이용
+                # if st.session_state['document_type'] == "Google Search":
+                #     pc_index_name_tag = re.sub(r'[^a-zA-Z0-9]', '-', st.session_state.get("google_search_query", 'Unknown'))
+                # else:
+                #     pc_index_name_tag = re.sub(r'[^a-zA-Z0-9]', '-', st.session_state["document_source"][0])
+                # pinecone_index_name = 'perplexis--' + pc_index_name_tag
+                # pinecone_index_name = pinecone_index_name[:40] + "--end"
+                # pinecone_index_name = pinecone_index_name.lower()
+                
+                print(f"pinecone_index_name ---------------> {pinecone_index_name}")
 
                 # Pinecone Index 초기화 (삭제)
-                if pinecone_index_name in pc.list_indexes().names():
-                    pc.delete_index(pinecone_index_name)
+                # if pinecone_index_name in pc.list_indexes().names():
+                #     pc.delete_index(pinecone_index_name)
 
-                # Pinecone Index 생성
-                pc.create_index(
-                    name=pinecone_index_name,
-                    dimension=st.session_state['vectorstore_dimension'],
-                    metric=st.session_state['pinecone_metric'],
-                    spec=ServerlessSpec(
-                        cloud='aws',
-                        region='us-east-1'
+                # 지정된 이름의 Pinecone Index가 존재하지 않으면, 신규 생성
+                if pinecone_index_name not in pc.list_indexes().names():
+                    pc.create_index(
+                        name=pinecone_index_name,
+                        dimension=st.session_state['vectorstore_dimension'],
+                        metric=st.session_state['pinecone_metric'],
+                        spec=ServerlessSpec(
+                            cloud='aws',
+                            region='us-east-1'
+                        )
                     )
-                )
 
                 # Pinecone Embedding 처리
                 vectorstore = PineconeVectorStore.from_documents(
