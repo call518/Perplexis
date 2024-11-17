@@ -243,7 +243,7 @@ def main():
             with col_rag_arg1:
                 st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
             with col_rag_arg2:
-                st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "similarity":
             st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "mmr":
