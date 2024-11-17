@@ -364,6 +364,8 @@ def main():
                     if not st.session_state['document_source']:
                         st.error("[ERROR] No search results found.")
                         st.stop()
+                    else:
+                        st.session_state['document_source'] = list(dict.fromkeys(st.session_state['document_source']).keys())
                     for url in st.session_state['document_source']:
                         print(f"Loaded URL ------------------------------------------> {url}")
                         loader = WebBaseLoader(
@@ -376,25 +378,24 @@ def main():
                 splits = []
                 if st.session_state['document_type'] == "Google Search":
                     for doc_contents in docs_contents:
-                        splits.append(text_splitter.split_documents(doc_contents))
+                        splits.extend(text_splitter.split_documents(doc_contents))
                 else:
                     splits = text_splitter.split_documents(docs_contents)
 
                 # 모든 청크 벡터화 및 메타데이터 준비 (for Pinecone에 임베딩)
                 documents_and_metadata = []
                 if st.session_state['document_type'] == "Google Search":
-                    for i, docs in enumerate(splits):
-                        for j, doc in enumerate(docs):
-                            document = Document(
-                                page_content=doc.page_content,
-                                metadata={"id": j + 1, "source": st.session_state['document_source'][i]}
-                            )
-                            documents_and_metadata.append(document)
+                    for i, doc in enumerate(splits):
+                        document = Document(
+                            page_content=doc.page_content,
+                            metadata={"id": i + 1, "source": st.session_state['document_source'][i // len(splits) * len(st.session_state['document_source'])]}
+                        )
+                        documents_and_metadata.append(document)
                 else:
                     for i, doc in enumerate(splits):
                         document = Document(
                             page_content=doc.page_content,
-                            metadata={"id": i + 1, "source": st.session_state['document_source']}
+                            metadata={"id": i + 1, "source": st.session_state['document_source'][0]}
                         )
                         documents_and_metadata.append(document)
 
@@ -476,6 +477,26 @@ def main():
                 streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
 #-----------------------------------------------------------------------------------------------------------
+
+    ### Google Search 결과 표시
+    if st.session_state['document_type'] == "Google Search":
+        # for idx, url in enumerate(st.session_state['document_source'], 1):
+        #     st.write(f"URL-{idx}\t{url}")
+        # multiline_text = "\n".join(st.session_state['document_source'])
+        # st.info(multiline_text.replace("\n", "<br>"), icon="ℹ️", unsafe_allow_html=True)
+        multiline_text = "".join(
+            [f'<a href="{url}" target="_blank">{url}</a><br>' for url in st.session_state['document_source']]
+        )
+        st.markdown(
+            f"""
+            <div style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; 
+                        font-family: Arial, sans-serif; border-radius: 5px;">
+                <p><b>ℹ️ Google Search Results</b></p>
+                <p style="white-space: pre-line;">{multiline_text}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     # 메인 창 로딩 가능 여부(retriever 객체 존재) 확인
     try:
@@ -560,8 +581,9 @@ def main():
 #----------------------------------------------------
 
 if __name__ == "__main__":
-    # Error 메세지/코드 숨기기
-    try:
-        main()
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    main()
+    # # Error 메세지/코드 숨기기
+    # try:
+    #     main()
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
