@@ -28,9 +28,10 @@ from googlesearch import search
 import os
 import shutil
 
+os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", "http://localhost:11434")
+os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", "https://api.openai.com/v1")
 os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY", "")
 os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY", "")
-
 if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
     os.environ["LANGCHAIN_TRACING_V2"]= "true"
     os.environ["LANGCHAIN_ENDPOINT"]= "https://api.smith.langchain.com"
@@ -44,8 +45,7 @@ st.title(":books: _:red[Perplexis]_")
 # Initialize session state with default values
 default_values = {
     'session_id': str(uuid.uuid4()),
-    'openai_api_url': "https://api.openai.com/v1",
-    'ollama_api_url': "http://localhost:11434",
+    'is_analyzed': False,
     'vectorstore_dimension': None,
     'document_type': None,
     'document_source': [],
@@ -69,7 +69,6 @@ default_values = {
     'chat_history_rag_contexts': [],
     'chat_history_temperature': [],
     'store': {},
-    'is_analyzed': False,
 }
 
 def init_session_state():
@@ -184,8 +183,8 @@ def main():
             st.session_state['selected_ai'] = st.radio("AI", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
 
         os.environ["OPENAI_API_KEY"] = st.text_input("OpenAI API Key [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
-        st.session_state['openai_api_url'] = st.text_input("OpenAI API URL", value=st.session_state['openai_api_url'], disabled=st.session_state['is_analyzed'])
-        st.session_state['ollama_api_url'] = st.text_input("Ollama API URL", value=st.session_state['ollama_api_url'], disabled=st.session_state['is_analyzed'])
+        os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
+        os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
         os.environ["PINECONE_API_KEY"] = st.text_input("Pinecone API Key [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
 
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
@@ -229,13 +228,13 @@ def main():
         if st.session_state['selected_embeddings'] == "OpenAI":
             st.session_state['embeddings'] = OpenAIEmbeddings(
                 api_key=os.environ["OPENAI_API_KEY"],
-                base_url=st.session_state['openai_api_url'],
+                base_url=os.environ["OPENAI_BASE_URL"],
                 model="text-embedding-3-large" # dimension = 3072
             )
             st.session_state['vectorstore_dimension'] = 3072
         else:
             st.session_state['embeddings'] = OllamaEmbeddings(
-                base_url=st.session_state['ollama_api_url'],
+                base_url=os.environ["OLLAMA_BASE_URL"],
                 model="mxbai-embed-large",  # dimension = 1024
             )
             st.session_state['vectorstore_dimension'] = 1024
@@ -244,13 +243,13 @@ def main():
         if st.session_state['selected_ai'] == "OpenAI":
             st.session_state['llm'] = ChatOpenAI(
                 api_key=os.environ["OPENAI_API_KEY"],
-                base_url=st.session_state['openai_api_url'],
+                base_url=os.environ["OPENAI_BASE_URL"],
                 model=st.session_state['selected_llm'],
                 temperature=st.session_state['temperature'],
             )
         else:
             st.session_state['llm'] = Ollama(
-                base_url=st.session_state['ollama_api_url'],
+                base_url=os.environ["OLLAMA_BASE_URL"],
                 model=st.session_state['selected_llm'],
                 temperature=st.session_state['temperature'],
             )
