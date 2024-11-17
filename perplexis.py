@@ -28,10 +28,13 @@ from googlesearch import search
 import os
 import shutil
 
+### Mandatory Keys 설정
 os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", "http://localhost:11434")
 os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", "https://api.openai.com/v1")
 os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY", "")
 os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY", "")
+
+### (Optional) Langchain API Key 설정
 if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
     os.environ["LANGCHAIN_TRACING_V2"]= "true"
     os.environ["LANGCHAIN_ENDPOINT"]= "https://api.smith.langchain.com"
@@ -199,9 +202,12 @@ def main():
         
         col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
         with col_chunk_size:
-            st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=1000, max_value=5000, value=2000, step=500, disabled=st.session_state['is_analyzed'])
+            st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=500, max_value=5000, value=1000, step=100, disabled=st.session_state['is_analyzed'])
         with col_chunk_overlap:
-            st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=100, max_value=500, value=200, step=100, disabled=st.session_state['is_analyzed'])
+            st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=100, max_value=1000, value=200, step=100, disabled=st.session_state['is_analyzed'])
+            if st.session_state['chunk_size'] <= st.session_state['chunk_overlap']:
+                st.error("Chunk Overlap must be less than Chunk Size.")
+                st.stop()
 
         col_pinecone_metric, col_rag_search_type = st.sidebar.columns(2)
         with col_pinecone_metric:
