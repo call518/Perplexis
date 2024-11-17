@@ -181,7 +181,7 @@ def main():
 
         col_embedding, col_ai = st.sidebar.columns(2)
         with col_embedding:
-            st.session_state['selected_embeddings'] = st.radio("Embedding", ("Ollama", "OpenAI"), disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_embeddings'] = st.radio("Embedding", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
         with col_ai:
             st.session_state['selected_ai'] = st.radio("AI", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
 
