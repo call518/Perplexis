@@ -31,10 +31,14 @@ import os
 import shutil
 
 ### Mandatory Keys 설정
-os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", "http://localhost:11434")
-os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY", "")
-os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY", "")
+if not os.environ.get("OLLAMA_BASE_URL"):
+    os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", "http://localhost:11434")
+if not os.environ.get("OPENAI_BASE_URL"):
+    os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+if not os.environ.get("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY", "")
+if not os.environ.get("PINECONE_API_KEY"):
+    os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY", "")
 
 ### (Optional) Langchain API Key 설정
 if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
@@ -439,7 +443,7 @@ def main():
                         pc.delete_index(pinecone_index_name)
 
                 # 지정된 이름의 Pinecone Index가 존재하지 않으면, 신규 생성
-                if pinecone_index_name not in pc.list_indexes().names():
+                if (pinecone_index_name not in pc.list_indexes().names()):
                     pc.create_index(
                         name=pinecone_index_name,
                         dimension=st.session_state['vectorstore_dimension'],
