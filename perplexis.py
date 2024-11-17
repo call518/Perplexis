@@ -87,6 +87,8 @@ default_values = {
     'rag_search_type': None,
     'rag_score': None,
     'rag_top_k': None,
+    'rag_fetch_k': None,
+    'rag_lambda_mult': None,
     'google_search_result_count': None,
     'google_search_result_lang': None,
     'google_search_query': None,
@@ -131,10 +133,10 @@ def google_search(query, num_results=10, lang="ko"):
                 # print(f"{idx}. {result}")
             return results_list
         else:
-            print("검색 결과를 찾을 수 없습니다.")
-            return []
+            st.error("No search results found.")
+            st.stop
     except Exception as e:
-        st.error(f"[ERROR] 오류 발생: {e}")
+        st.error(f"[ERROR] {e}")
         st.stop()
 
 def get_llm_model_name():
@@ -184,7 +186,9 @@ contextualize_q_prompt = ChatPromptTemplate.from_messages(
 system_prompt = (
     # "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise."
     # "당신은 모든 분야에서 전문가 입니다. 다음 검색된 컨텍스트 조각을 사용하여 질문자의 질문에 체계적인 답변을 작성하세요. 답을 모르면 모른다고 말하세요. 최소 50개의 문장을 사용하고 답변은 간결하면서도 최대한 상세한 정보를 포함해야 합니다. (답변은 한국어로 작성하세요.)"
-    "You are an expert in all fields. Using the following retrieved context snippets, formulate a systematic answer to the asker's question. If you don't know the answer, say you don't know. Use at least 50 sentences, and ensure the response is concise yet contains as much detailed information as possible. (The response should be written in Korean.)"
+    # "You are an expert in all fields. Using the following retrieved context snippets, formulate a systematic answer to the asker's question. If you don't know the answer, say you don't know. Use at least 50 sentences, and ensure the response is concise yet contains as much detailed information as possible. (The response should be written in Korean.)"
+    # "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible. (Write the answer in Korean.)"
+    "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible. When there is no context data available to use for the question, inform about that before answering. (Write the answer in Korean.)"
     "\n\n"
     "{context}"
 )
@@ -205,9 +209,9 @@ def main():
 
         col_embedding, col_ai = st.sidebar.columns(2)
         with col_embedding:
-            st.session_state['selected_embeddings'] = st.radio("Embedding", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_embeddings'] = st.radio("**:blue[Embedding]**", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
         with col_ai:
-            st.session_state['selected_ai'] = st.radio("AI", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
 
         os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
         os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
@@ -235,26 +239,26 @@ def main():
 
         col_pinecone_metric, col_rag_search_type = st.sidebar.columns(2)
         with col_pinecone_metric:
-            st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
+            st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"])
         with col_rag_search_type:
-            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity_score_threshold", "similarity", "mmr"], disabled=st.session_state['is_analyzed'])
+            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity_score_threshold", "similarity", "mmr"])
         
         if st.session_state['rag_search_type'] == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
             with col_rag_arg1:
-                st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
+                st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1)        
             with col_rag_arg2:
-                st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.60, step=0.05)
         elif st.session_state['rag_search_type'] == "similarity":
-            st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
+            st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1)
         elif st.session_state['rag_search_type'] == "mmr":
             col_rag_arg1, col_rag_arg2, col_rag_arg3 = st.sidebar.columns(3)
             with col_rag_arg1:
-                st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1)
             with col_rag_arg2:
-                st.session_state['fetch_k'] = st.number_input("Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_fetch_k'] = st.number_input("Fetch-K", min_value=1, value=5, step=1)
             with col_rag_arg3:
-                st.session_state['lambda_mult'] = st.number_input("Lambda Mult", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_lambda_mult'] = st.number_input("Lambda Mult", min_value=0.01, max_value=1.00, value=0.80, step=0.05)
 
         if not os.environ["OPENAI_API_KEY"]:
             st.error("Please enter the OpenAI API Key.")
@@ -325,11 +329,11 @@ def main():
                 if st.session_state['document_type'] == "URL":
                     # 주요 세션 정보 구성
                     if not st.session_state['document_source']:
-                        st.error("[ERROR] URL 정보가 없습니다.")
+                        st.error("[ERROR] URL information is missing.")
                         st.stop()
 
                     if not is_valid_url(st.session_state['document_source'][0]):
-                        st.error("[ERROR] 비정상 URL 입니다.")
+                        st.error("[ERROR] Invalid URL.")
                         st.stop()
                     # 문서 로드 및 분할
                     loader = WebBaseLoader(
@@ -353,7 +357,7 @@ def main():
                 if st.session_state['document_type'] == "Google Search":
                     st.session_state['document_source'] = google_search(st.session_state['google_search_query'], num_results=st.session_state['google_search_result_count'], lang=st.session_state['google_search_result_lang'])
                     if not st.session_state['document_source']:
-                        st.error("[ERROR] 검색 결과가 없습니다.")
+                        st.error("[ERROR] No search results found.")
                         st.stop()
                     for url in st.session_state['document_source']:
                         print(f"Loaded URL ------------------------------------------> {url}")
@@ -430,9 +434,9 @@ def main():
                 st.session_state['retriever'] = vectorstore.as_retriever(search_type=st.session_state['rag_search_type'], search_kwargs=search_kwargs)
                 
                 if st.session_state['retriever']:
-                    st.success("Embedding 완료!")
+                    st.success("Embedding completed!")
                 else:
-                    st.error("[ERROR] Embedding 실패!")
+                    st.error("[ERROR] Embedding failed!")
                     st.stop()
 
                 # RAG Chain 생성
@@ -474,7 +478,7 @@ def main():
             st.stop()
     except Exception as e:
         print(f"[Exception]: {e}")
-        st.markdown("좌측 사이드바에서 필수 정보를 입력하세요.")
+        st.markdown("Please enter the required information in the left sidebar.")
         st.stop()
 
     ## Container 선언 순서가 화면에 보여지는 순서 결정
