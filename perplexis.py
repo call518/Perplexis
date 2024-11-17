@@ -28,10 +28,13 @@ from googlesearch import search
 import os
 import shutil
 
-if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", None):
+os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY", "")
+os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY", "")
+
+if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
     os.environ["LANGCHAIN_TRACING_V2"]= "true"
     os.environ["LANGCHAIN_ENDPOINT"]= "https://api.smith.langchain.com"
-    os.environ["LANGCHAIN_API_KEY"] = st.secrets["KEYS"].get("LANGCHAIN_API_KEY", None)
+    os.environ["LANGCHAIN_API_KEY"] = st.secrets["KEYS"].get("LANGCHAIN_API_KEY", "")
     os.environ["LANGCHAIN_PROJECT"]= "Perplexis"
 
 # 페이지 정보 정의
@@ -41,8 +44,6 @@ st.title(":books: _:red[Perplexis]_")
 # Initialize session state with default values
 default_values = {
     'session_id': str(uuid.uuid4()),
-    'openai_api_key': st.secrets["KEYS"].get("OPENAI_API_KEY", None),
-    'pinecone_api_key': st.secrets["KEYS"].get("PINECONE_API_KEY", None),
     'openai_api_url': "https://api.openai.com/v1",
     'ollama_api_url': "http://localhost:11434",
     'vectorstore_dimension': None,
@@ -123,7 +124,7 @@ def is_valid_url(url):
     return re.match(url_pattern, url) is not None
 
 # Pinecone 관련 설정
-# pc = Pinecone(api_key=st.session_state['pinecone_api_key'])
+# pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
 # pinecone_index_name = 'perplexis'
 
 def read_txt(file):
@@ -182,10 +183,10 @@ def main():
         with col_ai:
             st.session_state['selected_ai'] = st.radio("AI", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
 
-        st.session_state['openai_api_key'] = st.text_input("OpenAI API Key [Learn more](https://platform.openai.com/docs/quickstart)", value=st.session_state['openai_api_key'], type="password", disabled=st.session_state['is_analyzed'])
+        os.environ["OPENAI_API_KEY"] = st.text_input("OpenAI API Key [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
         st.session_state['openai_api_url'] = st.text_input("OpenAI API URL", value=st.session_state['openai_api_url'], disabled=st.session_state['is_analyzed'])
         st.session_state['ollama_api_url'] = st.text_input("Ollama API URL", value=st.session_state['ollama_api_url'], disabled=st.session_state['is_analyzed'])
-        st.session_state['pinecone_api_key'] = st.text_input("Pinecone API Key [Learn more](https://www.pinecone.io/docs/quickstart/)", value=st.session_state['pinecone_api_key'], type="password", disabled=st.session_state['is_analyzed'])
+        os.environ["PINECONE_API_KEY"] = st.text_input("Pinecone API Key [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
 
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
         with col_ai_llm:
@@ -216,18 +217,18 @@ def main():
         with col_rag_top_k:
             st.session_state['rag_top_k'] = st.number_input("RAG TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
 
-        if not st.session_state['openai_api_key']:
+        if not os.environ["OPENAI_API_KEY"]:
             st.error("Please enter the OpenAI API Key.")
             st.stop()
 
-        if not st.session_state['pinecone_api_key']:
+        if not os.environ["PINECONE_API_KEY"]:
             st.error("Please enter the Pinecone API Key.")
             st.stop()
 
         # Embedding 선택 및 초기화
         if st.session_state['selected_embeddings'] == "OpenAI":
             st.session_state['embeddings'] = OpenAIEmbeddings(
-                api_key=st.session_state['openai_api_key'],
+                api_key=os.environ["OPENAI_API_KEY"],
                 base_url=st.session_state['openai_api_url'],
                 model="text-embedding-3-large" # dimension = 3072
             )
@@ -242,7 +243,7 @@ def main():
         # AI 모델 선택 및 초기화
         if st.session_state['selected_ai'] == "OpenAI":
             st.session_state['llm'] = ChatOpenAI(
-                api_key=st.session_state['openai_api_key'],
+                api_key=os.environ["OPENAI_API_KEY"],
                 base_url=st.session_state['openai_api_url'],
                 model=st.session_state['selected_llm'],
                 temperature=st.session_state['temperature'],
@@ -355,7 +356,6 @@ def main():
                 st.write(f"Documents Chunks: {len(documents_and_metadata)}")
 
                 # Pinecone 관련 설정
-                os.environ["PINECONE_API_KEY"] = st.session_state.get('pinecone_api_key', None)
                 pc = Pinecone()
                 pinecone_index_name = 'perplexis'
 
