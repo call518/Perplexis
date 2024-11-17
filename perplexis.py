@@ -136,7 +136,10 @@ url_pattern = re.compile(
 def google_search(query, num_results=10, lang="ko"):
     results_list = []
     try:
-        results = search(query, num_results=num_results, lang=lang)
+        if lang == "Any":
+            results = search(query, num_results=num_results)
+        else:
+            results = search(query, num_results=num_results, lang=lang)
         
         if results:
             for idx, result in enumerate(results, 1):
@@ -336,7 +339,7 @@ def main():
             with col_google_search_result_count:
                 st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])
             with col_google_search_result_lang:
-                st.session_state['google_search_result_lang'] = st.selectbox("Search Language", [ "en", "ko"], disabled=st.session_state['is_analyzed']) 
+                st.session_state['google_search_result_lang'] = st.selectbox("[Search Language](https://developers.google.com/custom-search/docs/json_api_reference?hl=ko#countryCodes)", [ "Any", "en", "ko", "jp", "cn"], disabled=st.session_state['is_analyzed'])
             
         else:
             st.error("[ERROR] Unsupported document type")
