@@ -45,7 +45,7 @@ if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
 
 # 페이지 정보 정의
 st.set_page_config(page_title="Perplexis", page_icon=":books:", layout="wide")
-st.title(":books: _:red[[Perplexis](https://github.com/call518/Perplexis)]_")
+st.title(":books: _:red[Perplexis]_")
 
 # (임시) Session ID값으로 Client IP를 사용 (추후 ID/PW 시스템으로 변경 필요)
 def get_remote_ip() -> str:
