@@ -43,7 +43,7 @@ if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
 
 # 페이지 정보 정의
 st.set_page_config(page_title="Perplexis", page_icon=":books:", layout="wide")
-st.title(":books: _:red[Perplexis]_")
+st.title(":books: _:red[[Perplexis](https://github.com/call518/Perplexis)]_")
 
 # Initialize session state with default values
 default_values = {

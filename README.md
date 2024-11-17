@@ -2,9 +2,10 @@
 
 `Perplexis` is Private [Perplexity](https://www.perplexity.ai/)
 
-# Environments
+# Tested Environments
 
-- Tested Python : 3.12.7
+- Python : 3.12.7 (/w Miniconda)
+- ollama version is 0.4.1
 
 # Configure & Run
 
