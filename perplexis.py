@@ -213,14 +213,24 @@ def main():
         with col_pinecone_metric:
             st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
         with col_rag_search_type:
-            # st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity_score_threshold", "similarity", "mmr"], disabled=st.session_state['is_analyzed'])
-            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity_score_threshold"], disabled=st.session_state['is_analyzed'])
+            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity_score_threshold", "similarity", "mmr"], disabled=st.session_state['is_analyzed'])
         
-        col_rag_score, col_rag_top_k = st.sidebar.columns(2)
-        with col_rag_score:
-            st.session_state['rag_score'] = st.number_input("RAG Score", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
-        with col_rag_top_k:
-            st.session_state['rag_top_k'] = st.number_input("RAG TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
+        if st.session_state['rag_search_type'] == "similarity_score_threshold":
+            col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
+            with col_rag_arg1:
+                st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
+            with col_rag_arg2:
+                st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
+        elif st.session_state['rag_search_type'] == "similarity":
+            st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
+        elif st.session_state['rag_search_type'] == "mmr":
+            col_rag_arg1, col_rag_arg2, col_rag_arg3 = st.sidebar.columns(3)
+            with col_rag_arg1:
+                st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
+            with col_rag_arg2:
+                st.session_state['fetch_k'] = st.number_input("Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
+            with col_rag_arg3:
+                st.session_state['lambda_mult'] = st.number_input("Lambda Mult", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
 
         if not os.environ["OPENAI_API_KEY"]:
             st.error("Please enter the OpenAI API Key.")
@@ -387,7 +397,14 @@ def main():
                 )
                 
                 # 주어진 문서 내용 처리(임베딩)
-                st.session_state['retriever'] = vectorstore.as_retriever(search_type=st.session_state['rag_search_type'], search_kwargs={"k": int(st.session_state['rag_top_k']), "score_threshold": float(st.session_state['rag_score'])})
+                if st.session_state['rag_search_type'] == "similarity_score_threshold":
+                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "score_threshold": float(st.session_state['rag_score'])}
+                elif st.session_state['rag_search_type'] == "similarity":
+                    search_kwargs = {"k": int(st.session_state['rag_top_k'])}
+                elif st.session_state['rag_search_type'] == "mmr":
+                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "fetch_k": 20, "lambda_mult": 0.5}
+                st.session_state['retriever'] = vectorstore.as_retriever(search_type=st.session_state['rag_search_type'], search_kwargs=search_kwargs)
+                
                 if st.session_state['retriever']:
                     st.success("Embedding 완료!")
                 else:
