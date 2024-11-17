@@ -28,16 +28,11 @@ from googlesearch import search
 import os
 import shutil
 
-secrets_openai_api_key = st.secrets["KEYS"]["OPENAI_API_KEY"]
-# os.environ["OPENAI_API_KEY"]= secrets_openai_api_key
-secrets_pinecone_api_key = st.secrets["KEYS"]["PINECONE_API_KEY"]
-os.environ["PINECONE_API_KEY"]= secrets_pinecone_api_key
-secrets_langchain_api_key = st.secrets["KEYS"]["LANGCHAIN_API_KEY"]
-
-os.environ["LANGCHAIN_TRACING_V2"]= "true"
-os.environ["LANGCHAIN_ENDPOINT"]= "https://api.smith.langchain.com"
-os.environ["LANGCHAIN_API_KEY"] = secrets_langchain_api_key
-os.environ["LANGCHAIN_PROJECT"]= "Perplexis"
+if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", None):
+    os.environ["LANGCHAIN_TRACING_V2"]= "true"
+    os.environ["LANGCHAIN_ENDPOINT"]= "https://api.smith.langchain.com"
+    os.environ["LANGCHAIN_API_KEY"] = st.secrets["KEYS"].get("LANGCHAIN_API_KEY", None)
+    os.environ["LANGCHAIN_PROJECT"]= "Perplexis"
 
 # 페이지 정보 정의
 st.set_page_config(page_title="Perplexis", page_icon=":books:", layout="wide")
@@ -46,8 +41,8 @@ st.title(":books: _:red[Perplexis]_")
 # Initialize session state with default values
 default_values = {
     'session_id': str(uuid.uuid4()),
-    'openai_api_key': secrets_openai_api_key,
-    'pinecone_api_key': secrets_pinecone_api_key,
+    'openai_api_key': st.secrets["KEYS"].get("OPENAI_API_KEY", None),
+    'pinecone_api_key': st.secrets["KEYS"].get("PINECONE_API_KEY", None),
     'openai_api_url': "https://api.openai.com/v1",
     'ollama_api_url': "http://localhost:11434",
     'vectorstore_dimension': None,
@@ -87,11 +82,6 @@ init_session_state()
 upload_dir = f"./uploads/{st.session_state['session_id']}"
 if not os.path.exists(upload_dir):
     os.makedirs(upload_dir)
-
-# def reset_force():
-#     for key, value in default_values.items():
-#         st.session_state[key] = value
-#         print(f"[session_state] {key}={st.session_state.get(key, '')}")
 
 # URL 패턴 정의 (기본적인 URL 형태를 검증)
 url_pattern = re.compile(
@@ -179,10 +169,6 @@ qa_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-# Pinecone 관련 설정
-pc = Pinecone()
-pinecone_index_name = 'perplexis'
-
 #--------------------------------------------------
 
 def main():
@@ -231,7 +217,11 @@ def main():
             st.session_state['rag_top_k'] = st.number_input("RAG TOP-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])        
 
         if not st.session_state['openai_api_key']:
-            st.warning("Please enter the OpenAI API Key.")
+            st.error("Please enter the OpenAI API Key.")
+            st.stop()
+
+        if not st.session_state['pinecone_api_key']:
+            st.error("Please enter the Pinecone API Key.")
             st.stop()
 
         # Embedding 선택 및 초기화
@@ -364,6 +354,11 @@ def main():
                 
                 st.write(f"Documents Chunks: {len(documents_and_metadata)}")
 
+                # Pinecone 관련 설정
+                os.environ["PINECONE_API_KEY"] = st.session_state.get('pinecone_api_key', None)
+                pc = Pinecone()
+                pinecone_index_name = 'perplexis'
+
                 # Pinecone Index 초기화 (삭제)
                 if pinecone_index_name in pc.list_indexes().names():
                     pc.delete_index(pinecone_index_name)
@@ -423,7 +418,6 @@ def main():
 
         if st.session_state.get('is_analyzed', False) == True:
             if st.button("Reset", type='primary'):
-                # reset_force()
                 streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
 #-----------------------------------------------------------------------------------------------------------
