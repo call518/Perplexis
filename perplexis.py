@@ -97,6 +97,10 @@ default_values = {
     'chat_history_llm_model_name': [],
     'chat_history_rag_contexts': [],
     'chat_history_temperature': [],
+    'chat_history_rag_search_type': [],
+    'chat_history_rag_top_k': [],
+    'chat_history_rag_fetch_k': [],
+    'chat_history_rag_rag_lambda_mult': [],
     'store': {},
 }
 
@@ -241,7 +245,7 @@ def main():
         with col_pinecone_metric:
             st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"])
         with col_rag_search_type:
-            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity_score_threshold", "similarity", "mmr"])
+            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"])
         
         if st.session_state['rag_search_type'] == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
@@ -519,6 +523,10 @@ def main():
             st.session_state['chat_history_llm_model_name'].append(llm_model_name)
             st.session_state['chat_history_rag_contexts'].append(rag_contexts)
             st.session_state['chat_history_temperature'].append(st.session_state['temperature'])
+            st.session_state['chat_history_rag_search_type'].append(st.session_state.get('rag_search_type', 'Unknown'))
+            st.session_state['chat_history_rag_top_k'].append(st.session_state.get('rag_top_k', 'Unknown'))
+            st.session_state['chat_history_rag_fetch_k'].append(st.session_state.get('rag_fetch_k', 'Unknown'))
+            st.session_state['chat_history_rag_rag_lambda_mult'].append(st.session_state.get('rag_lambda_mult', 'Unknown'))
 
     ### container_history 처리
     if st.session_state['chat_history_ai']:
@@ -529,9 +537,13 @@ def main():
                 
                 llm_model_name = st.session_state['chat_history_llm_model_name'][i]
                 temperature = st.session_state['chat_history_temperature'][i]
+                rag_search_type = st.session_state['chat_history_rag_search_type'][i]
+                rag_top_k = st.session_state['chat_history_rag_top_k'][i]
+                rag_fetch_k = st.session_state['chat_history_rag_fetch_k'][i]
+                rag_lambda_mult = st.session_state['chat_history_rag_rag_lambda_mult'][i]
                 
-                st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['chat_history_rag_contexts'][-1])}")
-                st.write(f"RAG Search Type: {st.session_state.get('rag_search_type', 'Unknown')} / RAG Score: {st.session_state.get('rag_score', "Unknown")} / RAG TOP-K: {st.session_state.get('rag_top_k', "Unknown")} / Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
+                st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['chat_history_rag_contexts'][-1])} /  Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
+                st.write(f"RAG TOP-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', "Unknown")} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
                 
                 # 소스 데이터 표시
                 if st.session_state["chat_history_rag_contexts"][i]:
