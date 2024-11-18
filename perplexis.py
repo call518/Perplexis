@@ -427,7 +427,8 @@ def main():
                 pc = Pinecone()
                 
                 ### Pinecone Index Name 설정 : 단순/동일한 이름 사용
-                pinecone_index_name = 'perplexis'
+                pinecone_index_name = 'perplexis-' + st.session_state['selected_ai']
+                pinecone_index_name = pinecone_index_name.lower()
                 
                 ### Pinecone Index Name 설정 : Google Search Query 또는 URL 정보를 이용
                 # if st.session_state['document_type'] == "Google Search":
