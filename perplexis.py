@@ -1,4 +1,4 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb
+# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb pysqlite3-binary
 # pip list --format=freeze > requirements.txt
 
 import streamlit as st
