@@ -15,8 +15,8 @@ build==1.2.2.post1
 cachetools==5.5.0
 certifi==2024.8.30
 charset-normalizer==3.4.0
-chroma-hnswlib==0.7.6
-chromadb==0.5.18
+chroma-hnswlib==0.7.3
+chromadb==0.4.24
 click==8.1.7
 coloredlogs==15.0.1
 dataclasses-json==0.6.7
@@ -93,16 +93,18 @@ pillow==11.0.0
 pinecone-client==5.0.1
 pinecone-plugin-inference==1.1.0
 pinecone-plugin-interface==0.0.7
+pip==24.2
 posthog==3.7.0
 propcache==0.2.0
 protobuf==4.25.5
 protoc-gen-openapiv2==0.0.1
+pulsar-client==3.5.0
 pyarrow==18.0.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
 pydantic==2.9.2
-pydantic-settings==2.6.1
 pydantic_core==2.23.4
+pydantic-settings==2.6.1
 pydeck==0.9.1
 Pygments==2.18.0
 pypdf==5.1.0
@@ -120,6 +122,7 @@ requests-toolbelt==1.0.0
 rich==13.9.4
 rpds-py==0.21.0
 rsa==4.9
+setuptools==75.1.0
 shellingham==1.5.4
 six==1.16.0
 smmap==5.0.1
@@ -139,8 +142,8 @@ tomli==2.1.0
 tornado==6.4.1
 tqdm==4.67.0
 typer==0.13.0
-typing-inspect==0.9.0
 typing_extensions==4.12.2
+typing-inspect==0.9.0
 tzdata==2024.2
 urllib3==2.2.3
 uvicorn==0.32.0
@@ -149,6 +152,7 @@ watchdog==6.0.0
 watchfiles==0.24.0
 websocket-client==1.8.0
 websockets==14.1
+wheel==0.44.0
 wrapt==1.16.0
 yarl==1.17.2
 zipp==3.21.0
