@@ -1,4 +1,5 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb pysqlite3-binary
+# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb
+# pip freeze > requirements.txt
 # pip list --format=freeze > requirements.txt
 
 import streamlit as st
@@ -33,10 +34,11 @@ import os
 import shutil
 
 ### (임시) pysqlite3 설정 - sqlite3 모듈을 pysqlite3로 대체
+### pip install pysqlite3-binary 필요
 ### "Your system has an unsupported version of sql requires sqlite3 >= 3.35.0." 오류 해결 목적
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 ### Mandatory Keys 설정
 if not os.environ.get("OLLAMA_BASE_URL"):
@@ -493,7 +495,7 @@ def main():
                         index_name=pinecone_index_name
                     )
                 else:
-                    chromadb_dir_path = f"{chromadb_root}/Perplexis-{st.session_state.get('selected_ai', "unknown")}"
+                    chromadb_dir_path = f"{chromadb_root}/Perplexis-{st.session_state.get('selected_ai', 'unknown')}"
                     
                     if st.session_state.get('chromadb_root_reset', True):
                         reset_chromadb(chromadb_dir_path)
@@ -650,7 +652,7 @@ def main():
                 rag_lambda_mult = st.session_state['chat_history_rag_rag_lambda_mult'][i]
                 
                 st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['chat_history_rag_contexts'][-1])} /  Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
-                st.write(f"RAG TOP-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', "Unknown")} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
+                st.write(f"RAG TOP-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
                 
                 # 소스 데이터 표시
                 if st.session_state["chat_history_rag_contexts"][i]:
