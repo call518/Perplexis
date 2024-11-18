@@ -88,7 +88,7 @@ default_values = {
     'chunk_size': None,
     'chunk_overlap': None,
     'retriever': None,
-    'pinecone_index_reset': False,
+    'pinecone_index_reset': True,
     'rag_search_type': None,
     'rag_score': None,
     'rag_top_k': None,
