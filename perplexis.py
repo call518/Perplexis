@@ -23,6 +23,7 @@ from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 from langchain_community.vectorstores import Chroma
+import chromadb
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders import TextLoader
@@ -171,6 +172,10 @@ def get_llm_model_name():
 ### ChromaDB 초기화 정의
 chromadb_root = './chromadb'
 def reset_chromadb(db_path=chromadb_root):
+    ### ChromaDB 논리 세션 초기화
+    chromadb.api.client.SharedSystemClient.clear_system_cache()
+    
+    ### ChromaDB 물리 세션 초기화 (DB 삭제)
     if os.path.exists(db_path):
         shutil.rmtree(db_path)
     os.makedirs(db_path)
@@ -272,9 +277,9 @@ def main():
         
         col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
         with col_chunk_size:
-            st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=500, max_value=5000, value=1000, step=100, disabled=st.session_state['is_analyzed'])
+            st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=500, max_value=5000, value=500, step=100, disabled=st.session_state['is_analyzed'])
         with col_chunk_overlap:
-            st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=100, max_value=1000, value=200, step=100, disabled=st.session_state['is_analyzed'])
+            st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=100, max_value=1000, value=100, step=100, disabled=st.session_state['is_analyzed'])
             if st.session_state['chunk_size'] <= st.session_state['chunk_overlap']:
                 st.error("Chunk Overlap must be less than Chunk Size.")
                 st.stop()
@@ -482,10 +487,11 @@ def main():
                         index_name=pinecone_index_name
                     )
                 else:
-                    if st.session_state.get('chromadb_root_reset', True):
-                        reset_chromadb(chromadb_root)
-                    
                     chromadb_dir_path = f"{chromadb_root}/Perplexis-{st.session_state.get('selected_ai', "unknown")}"
+                    
+                    if st.session_state.get('chromadb_root_reset', True):
+                        reset_chromadb(chromadb_dir_path)
+                    
                     vectorstore = Chroma.from_documents(
                         documents_and_metadata,
                         st.session_state['embeddings'],
