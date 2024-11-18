@@ -1,4 +1,4 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb
+# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb==0.4.24
 # pip freeze > requirements.txt
 # pip list --format=freeze > requirements.txt
 
@@ -36,9 +36,9 @@ import shutil
 ### (임시) pysqlite3 설정 - sqlite3 모듈을 pysqlite3로 대체
 ### pip install pysqlite3-binary 필요
 ### "Your system has an unsupported version of sql requires sqlite3 >= 3.35.0." 오류 해결 목적
-# __import__('pysqlite3')
-# import sys
-# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 ### Mandatory Keys 설정
 if not os.environ.get("OLLAMA_BASE_URL"):
