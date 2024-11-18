@@ -293,7 +293,7 @@ def main():
                 st.error("Chunk Overlap must be less than Chunk Size.")
                 st.stop()
 
-        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=1, disabled=st.session_state['is_analyzed'])
+        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=0, disabled=st.session_state['is_analyzed'])
         
         if st.session_state['rag_search_type'] == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
