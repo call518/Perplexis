@@ -1,4 +1,4 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf googlesearch-python
+# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb
 # pip list --format=freeze > requirements.txt
 
 import streamlit as st
@@ -22,6 +22,7 @@ import re
 from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
+from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders import TextLoader
@@ -77,6 +78,7 @@ default_values = {
     'session_id': str(uuid.uuid4()),
     'client_remote_ip' : get_remote_ip(),
     'is_analyzed': False,
+    'vectorstore_type': "pinecone",
     'vectorstore_dimension': None,
     'document_type': None,
     'document_source': [],
@@ -89,6 +91,7 @@ default_values = {
     'chunk_overlap': None,
     'retriever': None,
     'pinecone_index_reset': True,
+    'chromadb_root_reset': True,
     'rag_search_type': None,
     'rag_score': None,
     'rag_top_k': None,
@@ -165,6 +168,13 @@ def get_llm_model_name():
         llm_model_name = "Unknown LLM"
     return llm_model_name
 
+### ChromaDB 초기화 정의
+chromadb_root = './chromadb'
+def reset_chromadb(db_path=chromadb_root):
+    if os.path.exists(db_path):
+        shutil.rmtree(db_path)
+    os.makedirs(db_path)
+
 ### URL 유효성 검사
 def is_valid_url(url):
     return re.match(url_pattern, url) is not None
@@ -227,20 +237,28 @@ def main():
     with st.sidebar:
         st.title("Parameters")
 
-        col_embedding, col_ai = st.sidebar.columns(2)
-        with col_embedding:
-            st.session_state['selected_embeddings'] = st.radio("**:blue[Embedding]**", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
+        col_ai, col_embedding, col_vectorstore = st.sidebar.columns(3)
         with col_ai:
-            st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=1, disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
+        with col_embedding:
+            st.session_state['selected_embeddings'] = st.radio("**:blue[Embedding]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
+        with col_vectorstore:
+            st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("ChromaDB", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
 
-        os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+        if st.session_state.get('selected_embeddings', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
+            os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+            os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
         
-        os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
-        os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
+        if st.session_state.get('selected_embeddings', "Ollama") == "Ollama" or st.session_state.get('selected_ai', "Ollama") == "Ollama":
+            os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
         
-        os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+        if st.session_state.get('vectorstore_type', 'ChromaDB') == "ChromaDB":
+            st.session_state['chromadb_root_reset'] = st.checkbox("Reset ChromaDB", value=st.session_state.get('chromadb_root_reset', True), disabled=st.session_state['is_analyzed'])
         
-        st.session_state['pinecone_index_reset'] = st.checkbox("Reset Pinecone Index", value=st.session_state.get('pinecone_index_reset', False), disabled=st.session_state['is_analyzed'])
+        if st.session_state.get('vectorstore_type', 'ChromaDB') == "Pinecone":
+            os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+            st.session_state['pinecone_index_reset'] = st.checkbox("Reset Pinecone Index", value=st.session_state.get('pinecone_index_reset', False), disabled=st.session_state['is_analyzed'])
+            st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
 
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
         with col_ai_llm:
@@ -261,11 +279,7 @@ def main():
                 st.error("Chunk Overlap must be less than Chunk Size.")
                 st.stop()
 
-        col_pinecone_metric, col_rag_search_type = st.sidebar.columns(2)
-        with col_pinecone_metric:
-            st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
-        with col_rag_search_type:
-            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=1, disabled=st.session_state['is_analyzed'])
+        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=1, disabled=st.session_state['is_analyzed'])
         
         if st.session_state['rag_search_type'] == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
@@ -284,13 +298,15 @@ def main():
             with col_rag_arg3:
                 st.session_state['rag_lambda_mult'] = st.number_input("Lambda Mult", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
 
-        if not os.environ["OPENAI_API_KEY"]:
-            st.error("Please enter the OpenAI API Key.")
-            st.stop()
+        if st.session_state.get('selected_embeddings', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
+            if not os.environ["OPENAI_API_KEY"]:
+                st.error("Please enter the OpenAI API Key.")
+                st.stop()
 
-        if not os.environ["PINECONE_API_KEY"]:
-            st.error("Please enter the Pinecone API Key.")
-            st.stop()
+        if st.session_state.get('vectorstore_type', 'Pinecone') == "Pinecone":
+            if not os.environ["PINECONE_API_KEY"]:
+                st.error("Please enter the Pinecone API Key.")
+                st.stop()
 
         # Embedding 선택 및 초기화
         if st.session_state['selected_embeddings'] == "OpenAI":
@@ -423,47 +439,58 @@ def main():
                 
                 st.write(f"Documents Chunks: {len(documents_and_metadata)}")
 
-                # Pinecone 관련 설정
-                pc = Pinecone()
-                
-                ### Pinecone Index Name 설정 : 단순/동일한 이름 사용
-                pinecone_index_name = 'perplexis-' + st.session_state['selected_ai']
-                pinecone_index_name = pinecone_index_name.lower()
-                
-                ### Pinecone Index Name 설정 : Google Search Query 또는 URL 정보를 이용
-                # if st.session_state['document_type'] == "Google Search":
-                #     pc_index_name_tag = re.sub(r'[^a-zA-Z0-9]', '-', st.session_state.get("google_search_query", 'Unknown'))
-                # else:
-                #     pc_index_name_tag = re.sub(r'[^a-zA-Z0-9]', '-', st.session_state["document_source"][0])
-                # pinecone_index_name = 'perplexis--' + pc_index_name_tag
-                # pinecone_index_name = pinecone_index_name[:40] + "--end"
-                # pinecone_index_name = pinecone_index_name.lower()
-                
-                print(f"pinecone_index_name ---------------> {pinecone_index_name}")
+                if st.session_state['vectorstore_type'] == "Pinecone":
+                    # Pinecone 관련 설정
+                    pc = Pinecone()
+                    
+                    ### Pinecone Index Name 설정 : 단순/동일한 이름 사용
+                    pinecone_index_name = 'perplexis-' + st.session_state['selected_ai']
+                    pinecone_index_name = pinecone_index_name.lower()
+                    
+                    ### Pinecone Index Name 설정 : Google Search Query 또는 URL 정보를 이용
+                    # if st.session_state['document_type'] == "Google Search":
+                    #     pc_index_name_tag = re.sub(r'[^a-zA-Z0-9]', '-', st.session_state.get("google_search_query", 'Unknown'))
+                    # else:
+                    #     pc_index_name_tag = re.sub(r'[^a-zA-Z0-9]', '-', st.session_state["document_source"][0])
+                    # pinecone_index_name = 'perplexis--' + pc_index_name_tag
+                    # pinecone_index_name = pinecone_index_name[:40] + "--end"
+                    # pinecone_index_name = pinecone_index_name.lower()
+                    
+                    print(f"pinecone_index_name ---------------> {pinecone_index_name}")
 
-                # Pinecone Index 초기화 (삭제)
-                if st.session_state.get('pinecone_index_reset', False):
-                    if pinecone_index_name in pc.list_indexes().names():
-                        pc.delete_index(pinecone_index_name)
+                    # Pinecone Index 초기화 (삭제)
+                    if st.session_state.get('pinecone_index_reset', False):
+                        if pinecone_index_name in pc.list_indexes().names():
+                            pc.delete_index(pinecone_index_name)
 
-                # 지정된 이름의 Pinecone Index가 존재하지 않으면, 신규 생성
-                if (pinecone_index_name not in pc.list_indexes().names()):
-                    pc.create_index(
-                        name=pinecone_index_name,
-                        dimension=st.session_state['vectorstore_dimension'],
-                        metric=st.session_state['pinecone_metric'],
-                        spec=ServerlessSpec(
-                            cloud='aws',
-                            region='us-east-1'
+                    # 지정된 이름의 Pinecone Index가 존재하지 않으면, 신규 생성
+                    if (pinecone_index_name not in pc.list_indexes().names()):
+                        pc.create_index(
+                            name=pinecone_index_name,
+                            dimension=st.session_state['vectorstore_dimension'],
+                            metric=st.session_state['pinecone_metric'],
+                            spec=ServerlessSpec(
+                                cloud='aws',
+                                region='us-east-1'
+                            )
                         )
-                    )
 
-                # Pinecone Embedding 처리
-                vectorstore = PineconeVectorStore.from_documents(
-                    documents_and_metadata,
-                    st.session_state['embeddings'],
-                    index_name=pinecone_index_name
-                )
+                    # Pinecone Embedding 처리
+                    vectorstore = PineconeVectorStore.from_documents(
+                        documents_and_metadata,
+                        st.session_state['embeddings'],
+                        index_name=pinecone_index_name
+                    )
+                else:
+                    if st.session_state.get('chromadb_root_reset', True):
+                        reset_chromadb(chromadb_root)
+                    
+                    chromadb_dir_path = f"{chromadb_root}/Perplexis-{st.session_state.get('selected_ai', "unknown")}"
+                    vectorstore = Chroma.from_documents(
+                        documents_and_metadata,
+                        st.session_state['embeddings'],
+                        persist_directory=f"{chromadb_dir_path}",
+                    )
                 
                 # 주어진 문서 내용 처리(임베딩)
                 if st.session_state['rag_search_type'] == "similarity_score_threshold":
