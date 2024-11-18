@@ -265,7 +265,7 @@ def main():
         with col_pinecone_metric:
             st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
         with col_rag_search_type:
-            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=1, disabled=st.session_state['is_analyzed'])
+            st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=0, disabled=st.session_state['is_analyzed'])
         
         if st.session_state['rag_search_type'] == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
