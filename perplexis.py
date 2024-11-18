@@ -32,6 +32,12 @@ from googlesearch import search
 import os
 import shutil
 
+### (임시) pysqlite3 설정 - sqlite3 모듈을 pysqlite3로 대체
+### "Your system has an unsupported version of sql requires sqlite3 >= 3.35.0." 오류 해결 목적
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 ### Mandatory Keys 설정
 if not os.environ.get("OLLAMA_BASE_URL"):
     os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", "http://localhost:11434")
