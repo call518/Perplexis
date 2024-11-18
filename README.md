@@ -4,7 +4,7 @@
 
 # Tested Environments
 
-- Python : 3.12.7 (/w Miniconda)
+- Python : 3.12.7
 - ollama version is 0.4.1
 
 # Configure & Run

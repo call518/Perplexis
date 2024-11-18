@@ -4,7 +4,6 @@ altair==5.4.1
 annotated-types==0.7.0
 anyio==4.6.2.post1
 asgiref==3.8.1
-async-timeout==4.0.3
 attrs==24.2.0
 backoff==2.2.1
 bcrypt==4.2.0
@@ -15,15 +14,14 @@ build==1.2.2.post1
 cachetools==5.5.0
 certifi==2024.8.30
 charset-normalizer==3.4.0
-chroma-hnswlib==0.7.3
-chromadb==0.4.24
+chroma-hnswlib==0.7.6
+chromadb==0.5.18
 click==8.1.7
 coloredlogs==15.0.1
 dataclasses-json==0.6.7
 Deprecated==1.2.15
 distro==1.9.0
 durationpy==0.9
-exceptiongroup==1.2.2
 fastapi==0.115.5
 filelock==3.16.1
 flatbuffers==24.3.25
@@ -98,7 +96,6 @@ posthog==3.7.0
 propcache==0.2.0
 protobuf==4.25.5
 protoc-gen-openapiv2==0.0.1
-pulsar-client==3.5.0
 pyarrow==18.0.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
@@ -138,7 +135,6 @@ tenacity==9.0.0
 tiktoken==0.8.0
 tokenizers==0.20.3
 toml==0.10.2
-tomli==2.1.0
 tornado==6.4.1
 tqdm==4.67.0
 typer==0.13.0
