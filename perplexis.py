@@ -663,6 +663,10 @@ def main():
 #----------------------------------------------------
 
 if __name__ == "__main__":
+    __import__('pysqlite3')
+    import sys
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+    
     main()
     # # Error 메세지/코드 숨기기
     # try:
