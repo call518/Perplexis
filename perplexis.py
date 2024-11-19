@@ -42,14 +42,10 @@ import shutil
 
 
 ### Mandatory Keys 설정
-if not os.environ.get("OLLAMA_BASE_URL"):
-    os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", "http://localhost:11434")
-if not os.environ.get("OPENAI_BASE_URL"):
-    os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-if not os.environ.get("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY", "")
-if not os.environ.get("PINECONE_API_KEY"):
-    os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY", "")
+os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", os.environ.get("OLLAMA_BASE_URL"))
+os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OPENAI_BASE_URL", os.environ.get("OPENAI_BASE_URL"))
+os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY", ""))
+os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY", os.environ.get("PINECONE_API_KEY"))
 
 ### (Optional) Langchain API Key 설정
 if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
