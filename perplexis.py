@@ -44,7 +44,7 @@ import shutil
 ### Mandatory Keys 설정
 os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", os.environ.get("OLLAMA_BASE_URL"))
 os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OPENAI_BASE_URL", os.environ.get("OPENAI_BASE_URL"))
-os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY", ""))
+os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY"))
 os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY", os.environ.get("PINECONE_API_KEY"))
 
 ### (Optional) Langchain API Key 설정
