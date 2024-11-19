@@ -582,8 +582,8 @@ def main():
         )
         st.markdown(
             f"""
-            <div style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; 
-                        font-family: Arial, sans-serif; border-radius: 5px;">
+            <div style="border: 1px solid #ddd; padding: 10px; background-color: #e7f3fc; 
+                        font-family: Arial, sans-serif; border-radius: 5px; width: 100%;">
                 <p><b>ℹ️ Google Search Results</b></p>
                 <p style="white-space: pre-line;">{multiline_text}</p>
             </div>
@@ -671,21 +671,42 @@ def main():
                 #st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['chat_history_rag_contexts'][-1])} / Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
                 #st.write(f"RAG TOP-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
 
-                st.markdown(f"""
-                    <p style='color: #2E9AFE;'>
-                        - <b>Embeddings</b>: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')}<br>
-                        - <b>AI</b>: {st.session_state.get('selected_ai', 'Unknown AI')}<br>
-                        - <b>LLM</b>: {llm_model_name}<br>
-                        - <b>Temperature</b>: {temperature}<br>
-                        - <b>RAG Contexts</b>: {len(st.session_state['chat_history_rag_contexts'][-1])}<br>
-                        - <b>Pinecone Metric</b>: {st.session_state.get('pinecone_metric', 'Unknown')}<br>
-                        - <b>RAG TOP-K</b>: {rag_top_k}<br>
-                        - <b>RAG Search Type</b>: {rag_search_type}<br>
-                        - <b>RAG Score</b>: {st.session_state.get('rag_score', 'Unknown')}<br>
-                        - <b>RAG Fetch-K</b>: {rag_fetch_k}<br>
-                        - <b>RAG Lambda Mult</b>: {rag_lambda_mult}<br>
-                    </p>
-                """, unsafe_allow_html=True)
+                # st.markdown(f"""
+                #     <p style='color: #2E9AFE;'>
+                #         - <b>Embeddings</b>: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')}<br>
+                #         - <b>AI</b>: {st.session_state.get('selected_ai', 'Unknown AI')}<br>
+                #         - <b>LLM</b>: {llm_model_name}<br>
+                #         - <b>Temperature</b>: {temperature}<br>
+                #         - <b>RAG Contexts</b>: {len(st.session_state['chat_history_rag_contexts'][-1])}<br>
+                #         - <b>Pinecone Metric</b>: {st.session_state.get('pinecone_metric', 'Unknown')}<br>
+                #         - <b>RAG TOP-K</b>: {rag_top_k}<br>
+                #         - <b>RAG Search Type</b>: {rag_search_type}<br>
+                #         - <b>RAG Score</b>: {st.session_state.get('rag_score', 'Unknown')}<br>
+                #         - <b>RAG Fetch-K</b>: {rag_fetch_k}<br>
+                #         - <b>RAG Lambda Mult</b>: {rag_lambda_mult}<br>
+                #     </p>
+                # """, unsafe_allow_html=True)
+                
+                with st.expander("Show Metadata"):
+                    st.markdown(
+                        f"""
+                        <div style="color: #2E9AFE; border: 1px solid #ddd; padding: 5px; background-color: #f9f9f9; border-radius: 5px; width: 100%;">
+                            - <b>AI</b>: {st.session_state.get('selected_ai', 'Unknown AI')}<br>
+                            - <b>LLM</b>: {llm_model_name}<br>
+                            - <b>Embeddings</b>: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')}<br>
+                            - <b>Temperature</b>: {temperature}<br>
+                            - <b>RAG Contexts</b>: {len(st.session_state['chat_history_rag_contexts'][-1])}<br>
+                            - <b>Pinecone Metric</b>: {st.session_state.get('pinecone_metric', 'Unknown')}<br>
+                            - <b>RAG TOP-K</b>: {rag_top_k}<br>
+                            - <b>RAG Search Type</b>: {rag_search_type}<br>
+                            - <b>RAG Score</b>: {st.session_state.get('rag_score', 'Unknown')}<br>
+                            - <b>RAG Fetch-K</b>: {rag_fetch_k}<br>
+                            - <b>RAG Lambda Mult</b>: {rag_lambda_mult}<br>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    st.write("")
                 
                 # 소스 데이터 표시
                 if st.session_state["chat_history_rag_contexts"][i]:
