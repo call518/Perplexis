@@ -103,7 +103,7 @@ default_values = {
     'pinecone_index_reset': True,
     'chromadb_root_reset': True,
     'rag_search_type': None,
-    'rag_score': None,
+    'rag_score': 0.01,
     'rag_top_k': None,
     'rag_fetch_k': None,
     'rag_lambda_mult': None,
@@ -293,7 +293,9 @@ def main():
                 st.error("Chunk Overlap must be less than Chunk Size.")
                 st.stop()
 
-        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=0, disabled=st.session_state['is_analyzed'])
+        ### (임시) similarity_score_threshold 모드에서, score_threshold 값 사용 안되는 버그 있음. (해결될 때 까지 노출 안함...)
+        #st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=0, disabled=st.session_state['is_analyzed'])
+        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "mmr"], index=0, disabled=st.session_state['is_analyzed'])
         
         if st.session_state['rag_search_type'] == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
@@ -509,11 +511,11 @@ def main():
                 
                 # 주어진 문서 내용 처리(임베딩)
                 if st.session_state['rag_search_type'] == "similarity_score_threshold":
-                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "score_threshold": float(st.session_state['rag_score'])}
+                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "score_threshold": st.session_state['rag_score']}
                 elif st.session_state['rag_search_type'] == "similarity":
                     search_kwargs = {"k": int(st.session_state['rag_top_k'])}
                 elif st.session_state['rag_search_type'] == "mmr":
-                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "fetch_k": int(st.session_state['rag_fetch_k']), "lambda_mult": float(st.session_state['rag_lambda_mult'])}
+                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "fetch_k": int(st.session_state['rag_fetch_k']), "lambda_mult": st.session_state['rag_lambda_mult']}
                 st.session_state['retriever'] = vectorstore.as_retriever(search_type=st.session_state['rag_search_type'], search_kwargs=search_kwargs)
                 
                 if st.session_state['retriever']:
@@ -652,8 +654,24 @@ def main():
                 rag_fetch_k = st.session_state['chat_history_rag_fetch_k'][i]
                 rag_lambda_mult = st.session_state['chat_history_rag_rag_lambda_mult'][i]
                 
-                st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['chat_history_rag_contexts'][-1])} /  Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
-                st.write(f"RAG TOP-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
+                #st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['chat_history_rag_contexts'][-1])} / Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
+                #st.write(f"RAG TOP-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
+
+                st.markdown(f"""
+                    <p style='color: #2E9AFE;'>
+                        - <b>Embeddings</b>: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')}<br>
+                        - <b>AI</b>: {st.session_state.get('selected_ai', 'Unknown AI')}<br>
+                        - <b>LLM</b>: {llm_model_name}<br>
+                        - <b>Temperature</b>: {temperature}<br>
+                        - <b>RAG Contexts</b>: {len(st.session_state['chat_history_rag_contexts'][-1])}<br>
+                        - <b>Pinecone Metric</b>: {st.session_state.get('pinecone_metric', 'Unknown')}<br>
+                        - <b>RAG TOP-K</b>: {rag_top_k}<br>
+                        - <b>RAG Search Type</b>: {rag_search_type}<br>
+                        - <b>RAG Score</b>: {st.session_state.get('rag_score', 'Unknown')}<br>
+                        - <b>RAG Fetch-K</b>: {rag_fetch_k}<br>
+                        - <b>RAG Lambda Mult</b>: {rag_lambda_mult}<br>
+                    </p>
+                """, unsafe_allow_html=True)
                 
                 # 소스 데이터 표시
                 if st.session_state["chat_history_rag_contexts"][i]:
