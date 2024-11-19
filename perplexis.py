@@ -42,10 +42,28 @@ import shutil
 
 
 ### Mandatory Keys 설정
-os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL", os.environ.get("OLLAMA_BASE_URL"))
-os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OPENAI_BASE_URL", os.environ.get("OPENAI_BASE_URL"))
-os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY"))
-os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY", os.environ.get("PINECONE_API_KEY"))
+### 1. secretes.toml 파일에 설정된 KEY 값이 최우선 적용.
+### 2. secretes.toml 파일에 설정된 KEY 값이 없을 경우, os.environ 환경변수로 설정된 KEY 값이 적용.
+### 3. secretes.toml 파일과 os.environ 환경변수 모두 설정되지 않은 경우, Default 값을 적용.
+if st.secrets["KEYS"].get("OLLAMA_BASE_URL"):
+    os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL")
+elif not os.environ.get("OLLAMA_BASE_URL"):
+    os.environ["OLLAMA_BASE_URL"] = "http://localhost:11434"
+
+if st.secrets["KEYS"].get("OPENAI_BASE_URL"):
+    os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OPENAI_BASE_URL")
+elif not os.environ.get("OPENAI_BASE_URL"):
+    os.environ["OPENAI_BASE_URL"] = "https://api.openai.com/v1"
+
+if st.secrets["KEYS"].get("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY")
+elif not os.environ.get("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = ""
+
+if st.secrets["KEYS"].get("PINECONE_API_KEY"):
+    os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY")
+elif not os.environ.get("PINECONE_API_KEY"):
+    os.environ["PINECONE_API_KEY"] = ""
 
 ### (Optional) Langchain API Key 설정
 if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
