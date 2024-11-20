@@ -1,3 +1,5 @@
 .env
 .streamlit
 chromadb
+
+__pycache__
