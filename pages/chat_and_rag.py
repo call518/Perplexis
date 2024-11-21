@@ -111,7 +111,7 @@ def get_remote_ip() -> str:
 # Initialize session state with default values
 default_values = {
     'selected_mode': "Chat",
-    'chat_lang': None,
+    'chat_lang_code': None,
     'chat_system_prompt': None,
     'chat_memory': None,
     'chat_conversation': None,
@@ -426,7 +426,7 @@ def main():
             )
 
         if st.session_state.get('selected_mode', "Chat") == "Chat":        
-            st.session_state['chat_lang'] = st.selectbox("Chat Language", [ "Any", "en", "ko", "jp", "cn"])
+            st.session_state['chat_lang_code'] = st.selectbox("Chat Language", [ "Any", "en", "ko", "jp", "cn"])
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             # 사용자 선택 및 입력값을 기본으로 RAG 데이터 준비
@@ -757,19 +757,19 @@ def main():
 
     ### Chat 모드 처리
     if st.session_state.get('selected_mode', "Chat") == "Chat":
-        chat_lang = st.session_state.get('chat_lang', "Any")
-        print(f"chat_lang ------> {chat_lang}")
-        if st.session_state.get('chat_lang', "Any") == "en":
+        chat_lang_code = st.session_state.get('chat_lang_code', "Any")
+        chat_lang = "Any"
+        if chat_lang_code == "en":
             chat_lang = "English"
-        elif st.session_state.get('chat_lang', "Any") == "ko":
+        elif chat_lang_code == "ko":
             chat_lang = "Korean"
-        elif st.session_state.get('chat_lang', "Any") == "jp":
+        elif chat_lang_code == "jp":
             chat_lang = "Japanese"
-        elif st.session_state.get('chat_lang', "Any") == "cn":
+        elif chat_lang_code == "cn":
             chat_lang = "Chinese"
         else:
             chat_lang = "Any"
-        print(f"chat_lang ------> {chat_lang}")
+        print(f"chat_lang_code ------> {chat_lang_code}")
         
         print(f"chat_system_prompt -------> {st.session_state['chat_system_prompt']}")
         # system_prompt_content = "You are a chatbot having a conversation with a human."
@@ -777,7 +777,7 @@ def main():
         system_prompt_common = "You should also be able to answer questions about the topic."
         system_prompt_lang = f"(Write the answer in {chat_lang}.)"
         st.session_state['chat_system_prompt'] = system_prompt_content + " " + system_prompt_common
-        if chat_lang != "Any":
+        if chat_lang_code != "Any":
             st.session_state['chat_system_prompt'] += " " + system_prompt_lang
         print(f"chat_system_prompt -------> {st.session_state['chat_system_prompt']}")
 
