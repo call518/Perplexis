@@ -758,36 +758,41 @@ def main():
     ### Chat 모드 처리
     if st.session_state.get('selected_mode', "Chat") == "Chat":
         chat_lang = st.session_state.get('chat_lang', "Any")
-        if chat_lang == "en":
+        print(f"chat_lang ------> {chat_lang}")
+        if st.session_state.get('chat_lang', "Any") == "en":
             chat_lang = "English"
-        elif chat_lang == "ko":
+        elif st.session_state.get('chat_lang', "Any") == "ko":
             chat_lang = "Korean"
-        elif chat_lang == "jp":
+        elif st.session_state.get('chat_lang', "Any") == "jp":
             chat_lang = "Japanese"
-        elif chat_lang == "cn":
+        elif st.session_state.get('chat_lang', "Any") == "cn":
             chat_lang = "Chinese"
         else:
             chat_lang = "Any"
+        print(f"chat_lang ------> {chat_lang}")
         
-        if st.session_state.get('chat_conversation', None) is None:
-            # system_prompt_content = "You are a chatbot having a conversation with a human."
-            system_prompt_content = "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations."
-            system_prompt_common = "You should also be able to answer questions about the topic."
-            system_prompt_lang = f"(Write the answer in {chat_lang}.)"
-            st.session_state['chat_system_prompt'] = system_prompt_content + " " + system_prompt_common
-            if chat_lang != "Any":
-                st.session_state['chat_system_prompt'] += " " + system_prompt_lang
+        print(f"chat_system_prompt -------> {st.session_state['chat_system_prompt']}")
+        # system_prompt_content = "You are a chatbot having a conversation with a human."
+        system_prompt_content = "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations."
+        system_prompt_common = "You should also be able to answer questions about the topic."
+        system_prompt_lang = f"(Write the answer in {chat_lang}.)"
+        st.session_state['chat_system_prompt'] = system_prompt_content + " " + system_prompt_common
+        if chat_lang != "Any":
+            st.session_state['chat_system_prompt'] += " " + system_prompt_lang
+        print(f"chat_system_prompt -------> {st.session_state['chat_system_prompt']}")
 
-            prompt = ChatPromptTemplate(
-                messages=[
-                    SystemMessagePromptTemplate.from_template(st.session_state['chat_system_prompt']),
-                    MessagesPlaceholder(variable_name="chat_memory"),
-                    HumanMessagePromptTemplate.from_template("{question}")
-                ]
-            )
+        prompt = ChatPromptTemplate(
+            messages=[
+                SystemMessagePromptTemplate.from_template(st.session_state['chat_system_prompt']),
+                MessagesPlaceholder(variable_name="chat_memory"),
+                HumanMessagePromptTemplate.from_template("{question}")
+            ]
+        )
 
+        if st.session_state.get('chat_memory', None) is None:
             st.session_state['chat_memory'] = ConversationBufferMemory(memory_key="chat_memory", return_messages=True)
-            
+
+        if st.session_state.get('chat_conversation', None) is None:
             st.session_state['chat_conversation'] = LLMChain(
                 llm=st.session_state['llm'],
                 prompt=prompt,
@@ -809,14 +814,12 @@ def main():
                 submit_button = st.form_submit_button(label='Send', use_container_width=False, help="Click to send your message", on_click=None, args=None, kwargs=None, disabled=False, icon=":material/send:", type='primary')
                 
             if submit_button and user_input:
-                print(f"--------------------> {st.session_state['chat_conversation']}")
                 with st.spinner('Thinking...'):
                     st.session_state['chat_response'] = st.session_state['chat_conversation'].invoke({"question": user_input})
 
         ### container_history 처리
         if st.session_state.get('chat_memory', None) is not None:
             with container_history:
-                print(f"-------------------------------> {st.session_state['chat_memory']}")
                 for message in st.session_state['chat_memory'].chat_memory.messages:
                     if isinstance(message, HumanMessage):
                         with st.chat_message("user"):
