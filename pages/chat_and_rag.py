@@ -111,7 +111,7 @@ def get_remote_ip() -> str:
 # Initialize session state with default values
 default_values = {
     'selected_mode': "Chat",
-    'chat_lang_code': None,
+    'chat_response_lang_code': None,
     'chat_system_prompt': None,
     'chat_memory': None,
     'chat_conversation': None,
@@ -426,7 +426,7 @@ def main():
             )
 
         if st.session_state.get('selected_mode', "Chat") == "Chat":        
-            st.session_state['chat_lang_code'] = st.selectbox("Chat Language", [ "Any", "en", "ko", "jp", "cn"])
+            st.session_state['chat_response_lang_code'] = st.selectbox("Response Language", [ "Any", "en", "ko", "jp", "cn"])
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             # 사용자 선택 및 입력값을 기본으로 RAG 데이터 준비
@@ -757,29 +757,29 @@ def main():
 
     ### Chat 모드 처리
     if st.session_state.get('selected_mode', "Chat") == "Chat":
-        chat_lang_code = st.session_state.get('chat_lang_code', "Any")
-        chat_lang = "Any"
-        if chat_lang_code == "en":
-            chat_lang = "English"
-        elif chat_lang_code == "ko":
-            chat_lang = "Korean"
-        elif chat_lang_code == "jp":
-            chat_lang = "Japanese"
-        elif chat_lang_code == "cn":
-            chat_lang = "Chinese"
+        chat_response_lang_code = st.session_state.get('chat_response_lang_code', "Any")
+        chat_response_lang = "Any"
+        if chat_response_lang_code == "en":
+            chat_response_lang = "English"
+        elif chat_response_lang_code == "ko":
+            chat_response_lang = "Korean"
+        elif chat_response_lang_code == "jp":
+            chat_response_lang = "Japanese"
+        elif chat_response_lang_code == "cn":
+            chat_response_lang = "Chinese"
         else:
-            chat_lang = "Any"
+            chat_response_lang = "Any"
         
         # system_prompt_content = "You are a chatbot having a conversation with a human."
         system_prompt_content = "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations."
         
         system_prompt_common = "You should also be able to answer questions about the topic."
         
-        system_prompt_lang = f"(Write the answer in {chat_lang}.)"
+        system_prompt_lang = f"(Write the answer in {chat_response_lang}.)"
         
         st.session_state['chat_system_prompt'] = system_prompt_content + " " + system_prompt_common
         
-        if chat_lang_code != "Any":
+        if chat_response_lang_code != "Any":
             st.session_state['chat_system_prompt'] += " " + system_prompt_lang
 
         ### Chat Memory 객체 생성 (최초 1회만 생성)
