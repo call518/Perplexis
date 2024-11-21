@@ -1,6 +1,6 @@
 # Perplexis
 
-`Perplexis` is Private [Perplexity](https://www.perplexity.ai/)
+`Perplexis` is Private AI Search Engine (like Perplexity)
 
 ## Chat & RAG Application Guide
 
