@@ -769,18 +769,24 @@ def main():
             chat_lang = "Chinese"
         else:
             chat_lang = "Any"
-        print(f"chat_lang_code ------> {chat_lang_code}")
         
-        print(f"chat_system_prompt -------> {st.session_state['chat_system_prompt']}")
         # system_prompt_content = "You are a chatbot having a conversation with a human."
         system_prompt_content = "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations."
+        
         system_prompt_common = "You should also be able to answer questions about the topic."
+        
         system_prompt_lang = f"(Write the answer in {chat_lang}.)"
+        
         st.session_state['chat_system_prompt'] = system_prompt_content + " " + system_prompt_common
+        
         if chat_lang_code != "Any":
             st.session_state['chat_system_prompt'] += " " + system_prompt_lang
-        print(f"chat_system_prompt -------> {st.session_state['chat_system_prompt']}")
 
+        ### Chat Memory 객체 생성 (최초 1회만 생성)
+        if st.session_state.get('chat_memory', None) is None:
+            st.session_state['chat_memory'] = ConversationBufferMemory(memory_key="chat_memory", return_messages=True)
+
+        ### Chat Prompt 객체 생성
         prompt = ChatPromptTemplate(
             messages=[
                 SystemMessagePromptTemplate.from_template(st.session_state['chat_system_prompt']),
@@ -789,19 +795,13 @@ def main():
             ]
         )
 
-        if st.session_state.get('chat_memory', None) is None:
-            st.session_state['chat_memory'] = ConversationBufferMemory(memory_key="chat_memory", return_messages=True)
-
-        if st.session_state.get('chat_conversation', None) is None:
-            st.session_state['chat_conversation'] = LLMChain(
-                llm=st.session_state['llm'],
-                prompt=prompt,
-                memory=st.session_state['chat_memory'],
-                verbose=True,
-            )
-
-        # if st.session_state.get('chat_memory', None) is None:
-        #     st.session_state['chat_memory'] = ConversationBufferMemory(memory_key="chat_memory", return_messages=True)
+        ### Chat Conversation 객체 생성        
+        st.session_state['chat_conversation'] = LLMChain(
+            llm=st.session_state['llm'],
+            prompt=prompt,
+            memory=st.session_state['chat_memory'],
+            verbose=True,
+        )        
 
         ## Container 선언 순서가 화면에 보여지는 순서 결정
         container_history = st.container()
