@@ -312,12 +312,15 @@ def main():
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             col_ai, col_embedding, col_vectorstore = st.sidebar.columns(3)
+            with col_ai:
+                st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
+            with col_embedding:
+                st.session_state['selected_embeddings'] = st.radio("**:blue[Embeddings]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
+            with col_vectorstore:
+                st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("ChromaDB", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
         else:
             st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
         
-        if st.session_state.get('selected_mode', "Chat") == "RAG":
-            with col_vectorstore:
-                st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("ChromaDB", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             if st.session_state.get('selected_embeddings', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
