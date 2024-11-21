@@ -192,7 +192,7 @@ def google_search(query, num_results=10, lang="ko"):
                 # PDF 링크 제외
                 if not result.lower().endswith(".pdf"):
                     results_list.append(result)
-                    # print(f"{idx}. {result}")
+                    print(f"[DEBUG] (Google Search URLs) {idx}. {result}")
             return results_list
         else:
             st.error("No search results found.")
