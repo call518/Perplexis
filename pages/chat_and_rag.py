@@ -10,6 +10,7 @@ import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from modules.nav import Navbar
+from modules.common_functions import get_sysetm_prompt_for_role
 
 import streamlit as st
 # from streamlit_chat import message
@@ -111,6 +112,7 @@ def get_remote_ip() -> str:
 # Initialize session state with default values
 default_values = {
     'selected_mode': "Chat",
+    'chat_ai_role': None,
     'chat_response_lang_code': None,
     'chat_system_prompt': None,
     'chat_memory': None,
@@ -158,7 +160,7 @@ def init_session_state():
     for key, value in default_values.items():
         if key not in st.session_state:
             st.session_state[key] = value
-        print(f"[session_state] {key} = {st.session_state.get(key, '')}")
+        print(f"[DEBUG] (session_state) {key} = {st.session_state.get(key, '')}")
     os.system('rm -rf ./uploads/*')
 
 init_session_state()
@@ -311,11 +313,8 @@ def main():
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             col_ai, col_embedding, col_vectorstore = st.sidebar.columns(3)
         else:
-            col_ai, col_embedding = st.sidebar.columns(2)
-        with col_ai:
             st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
-        with col_embedding:
-            st.session_state['selected_embeddings'] = st.radio("**:blue[Embedding]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
+        
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             with col_vectorstore:
                 st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("ChromaDB", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
@@ -335,6 +334,10 @@ def main():
                 os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
                 st.session_state['pinecone_index_reset'] = st.checkbox("Reset Pinecone Index", value=st.session_state.get('pinecone_index_reset', False), disabled=st.session_state['is_analyzed'])
                 st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
+        else:
+            if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
+                os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+                os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
 
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
         with col_ai_llm:
@@ -426,7 +429,75 @@ def main():
             )
 
         if st.session_state.get('selected_mode', "Chat") == "Chat":        
-            st.session_state['chat_response_lang_code'] = st.selectbox("Response Language", [ "Any", "en", "ko", "jp", "cn"])
+            st.session_state['chat_response_lang_code'] = st.selectbox("Response Language", [ "Any", "en", "ko", "jp", "cn"], index=0)
+            st.session_state['chat_ai_role'] = st.selectbox("Role of AI", [
+                    "Basic chatbot",
+                    "Customer support agent",
+                    "Technical support agent",
+                    "Sales representative",
+                    "HR recruiter",
+                    "Language translator",
+                    "Legal advisor",
+                    "Medical consultant",
+                    "Storyteller",
+                    "Poet",
+                    "Academician",
+                    "Journal reviewer",
+                    "Journalist",
+                    "Tech writer",
+                    "Title generator for written pieces",
+                    "Travel blogger",
+                    "Nutritionist",
+                    "Financial advisor",
+                    "Art historian",
+                    "Professional resume writer",
+                    "Sports commentator",
+                    "Interior designer",
+                    "Music critic",
+                    "Literary scholar",
+                    "Language tutor",
+                    "Chef",
+                    "Historian",
+                    "Fashion expert",
+                    "Film director",
+                    "Marketing consultant",
+                    "Tech journalist",
+                    "Fitness instructor",
+                    "Environmental advocate",
+                    "Career coach",
+                    "Wedding planner",
+                    "Node.js expert",
+                    "React expert",
+                    "Frontend developer experienced with CSS Grid",
+                    "Django and Python full-stack expert",
+                    "Vue.js expert",
+                    "Frontend developer experienced with HTML, CSS, JavaScript",
+                    "Angular and RxJS expert",
+                    "GraphQL expert using Apollo Server and Node.js",
+                    "PHP and Laravel expert",
+                    "JavaScript expert",
+                    "Web Components and the Shadow DOM expert",
+                    "Progressive Web App (PWA) expert",
+                    "Ruby on Rails expert",
+                    "Web accessibility expert",
+                    "WebSockets expert",
+                    "Svelte expert",
+                    "Flask framework expert",
+                    "Android app expert",
+                    "React and Material-UI expert",
+                    "Backend developer with expertise in Node.js",
+                    "MERN(MongoDB/Express/React/Node.js) stack expert",
+                    "iOS, Swift and SwiftUI expert",
+                    "Django, Python web framework expert",
+                    "Ruby on Rails deploying expert",
+                    "SPA with Vue.js expert",
+                    "PHP and the Laravel framework expert",
+                    "Java and the Spring Boot framework expert",
+                    "DevOps engineer",
+                    "Angular and RxJS expert",
+                    "GraphQL and Apollo expert",
+                    "Python and the Pandas library expert",
+                ], index=0)
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             # 사용자 선택 및 입력값을 기본으로 RAG 데이터 준비
@@ -470,7 +541,7 @@ def main():
                         else:
                             st.session_state['document_source'] = list(dict.fromkeys(st.session_state['document_source']).keys())
                         for url in st.session_state['document_source']:
-                            print(f"Loaded URL ------------------------------------------> {url}")
+                            # print(f"[DEBUG] Loaded URL ------------------------------------------> {url}")
                             loader = WebBaseLoader(
                                 web_paths=(url,),
                             )
@@ -503,7 +574,7 @@ def main():
                             documents_and_metadata.append(document)
 
                     ### Debugging Print
-                    print(f"documents_and_metadata chunks ---------------> {len(documents_and_metadata)}")
+                    print(f"[DEBUG] documents_and_metadata chunks ---------------> {len(documents_and_metadata)}")
                     
                     st.write(f"Documents Chunks: {len(documents_and_metadata)}")
 
@@ -524,7 +595,7 @@ def main():
                         # pinecone_index_name = pinecone_index_name[:40] + "--end"
                         # pinecone_index_name = pinecone_index_name.lower()
                         
-                        print(f"pinecone_index_name ---------------> {pinecone_index_name}")
+                        print(f"[DEBUG] pinecone_index_name ---------------> {pinecone_index_name}")
 
                         # Pinecone Index 초기화 (삭제)
                         if st.session_state.get('pinecone_index_reset', False):
@@ -771,7 +842,8 @@ def main():
             chat_response_lang = "Any"
         
         # system_prompt_content = "You are a chatbot having a conversation with a human."
-        system_prompt_content = "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations."
+        # system_prompt_content = "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations."
+        system_prompt_content = get_sysetm_prompt_for_role(st.session_state.get('chat_ai_role', "Basic chatbot"))
         
         system_prompt_common = "You should also be able to answer questions about the topic."
         
@@ -816,6 +888,7 @@ def main():
             if submit_button and user_input:
                 with st.spinner('Thinking...'):
                     st.session_state['chat_response'] = st.session_state['chat_conversation'].invoke({"question": user_input})
+                    print(f"[DEBUG] chat_response ------------> {st.session_state['chat_response']}")
 
         ### container_history 처리
         if st.session_state.get('chat_memory', None) is not None:
