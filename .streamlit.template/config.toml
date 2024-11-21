@@ -29,6 +29,7 @@ maxUploadSize = 20
 #apiKey = ""
 
 [client]
+showSidebarNavigation = false
 
 [logger]
 # 로깅 레벨 (예: error, warning, info, debug)
