@@ -780,6 +780,10 @@ def main():
                     rag_top_k = st.session_state['rag_history_rag_top_k'][i]
                     rag_fetch_k = st.session_state['rag_history_rag_fetch_k'][i]
                     rag_lambda_mult = st.session_state['rag_history_rag_rag_lambda_mult'][i]
+                    if st.session_state.get('rag_search_type', 'Unknown') == "similarity_score_threshold":
+                        rag_score = st.session_state['rag_history_rag_score'][i]
+                    else:
+                        rag_score = None
                     
                     #st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['rag_history_rag_contexts'][-1])} / Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
                     #st.write(f"RAG TOP-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
@@ -809,10 +813,10 @@ def main():
                                 - <b>Embeddings</b>: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')}<br>
                                 - <b>Temperature</b>: {temperature}<br>
                                 - <b>RAG Contexts</b>: {len(st.session_state['rag_history_rag_contexts'][-1])}<br>
-                                - <b>Pinecone Metric</b>: {st.session_state.get('pinecone_metric', 'Unknown')}<br>
+                                - <b>Pinecone Metric</b>: {st.session_state.get('pinecone_metric', None)}<br>
                                 - <b>RAG TOP-K</b>: {rag_top_k}<br>
                                 - <b>RAG Search Type</b>: {rag_search_type}<br>
-                                - <b>RAG Score</b>: {st.session_state.get('rag_score', 'Unknown')}<br>
+                                - <b>RAG Score</b>: {rag_score}<br>
                                 - <b>RAG Fetch-K</b>: {rag_fetch_k}<br>
                                 - <b>RAG Lambda Mult</b>: {rag_lambda_mult}<br>
                             </div>
