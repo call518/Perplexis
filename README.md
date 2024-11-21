@@ -78,3 +78,4 @@ $ streamlit run perplexis.py
 - http://localhost:8501/
 
 ![Main Page](etc/image-001.png)
+![Main Page](etc/image-002.png)
