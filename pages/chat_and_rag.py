@@ -355,9 +355,9 @@ def main():
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
             with col_chunk_size:
-                st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=500, max_value=5000, value=500, step=100, disabled=st.session_state['is_analyzed'])
+                st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=500, max_value=5000, value=1000, step=100, disabled=st.session_state['is_analyzed'])
             with col_chunk_overlap:
-                st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=100, max_value=1000, value=100, step=100, disabled=st.session_state['is_analyzed'])
+                st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=100, max_value=1000, value=200, step=100, disabled=st.session_state['is_analyzed'])
                 if st.session_state['chunk_size'] <= st.session_state['chunk_overlap']:
                     st.error("Chunk Overlap must be less than Chunk Size.")
                     st.stop()
