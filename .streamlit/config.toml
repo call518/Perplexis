@@ -30,6 +30,7 @@ maxUploadSize = 20
 
 [client]
 showSidebarNavigation = false
+showErrorDetails = false
 
 [logger]
 # 로깅 레벨 (예: error, warning, info, debug)
