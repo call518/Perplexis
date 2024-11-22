@@ -613,6 +613,10 @@ def main():
             if st.session_state.get('is_analyzed', False) == True:
                 if st.button("Reset", type='primary'):
                     streamlit_js_eval(js_expressions="parent.window.location.reload()")
+                    
+        if st.session_state.get('selected_mode', "Chat") == "Chat":
+            if st.button("Reset", type='primary'):
+                streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
 #-----------------------------------------------------------------------------------------------------------
 
