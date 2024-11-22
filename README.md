@@ -46,7 +46,9 @@ $ curl -fsSL https://ollama.com/install.sh | sh
 
 $ systemctl start ollama
 
-$ ollama pull gemma2
+$ ollama pull gemma2:2b
+$ ollama pull gemma2:9b
+$ ollama pull gemma2:27b
 
 $ ollama pull mistral
 
