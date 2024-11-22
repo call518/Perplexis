@@ -193,14 +193,15 @@ def google_search(query, num_results=10, lang="ko"):
         if results:
             for idx, result in enumerate(results, 1):
                 # PDF 링크 제외
-                if not result.lower().endswith(".pdf"):
-                    try:
-                        response = requests.head(result, allow_redirects=True)
-                        if 'application/pdf' not in response.headers.get('Content-Type', ''):
-                            results_list.append(result)
-                            #print(f"[DEBUG] (Google Search URLs) {idx}. {result}")
-                    except Exception as e:
-                        print(f"[ERROR] Failed to check URL {result}: {e}")
+                try:
+                    response = requests.head(result, allow_redirects=True)
+                    if 'application/pdf' not in response.headers.get('Content-Type', ''):
+                        results_list.append(result)
+                        print(f"[DEBUG] (Google Search URLs) {idx}. {result}")
+                    else:
+                        print(f"[DEBUG] (Google Search URLs) {idx}. <PDF Removed> {result}")
+                except Exception as e:
+                    print(f"[ERROR] Failed to check URL {result}: {e}")
             return results_list
         else:
             st.error("No search results found.")
