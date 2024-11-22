@@ -1,4 +1,4 @@
-def get_sysetm_prompt_for_role(role="Basic chatbot"):
+def get_sysetm_prompt_for_role(role="Basic chatbot", only_key=False):
     ### (일부 참고 출처) https://weam.ai/blog/prompts/best-system-prompts-for-chatgpt/
     prompts = {
         "Basic chatbot": "You are a basic chatbot. Respond to user queries in a friendly and helpful manner, providing accurate information and assistance based on the user's input.",
@@ -68,6 +68,8 @@ def get_sysetm_prompt_for_role(role="Basic chatbot"):
         "GraphQL and Apollo expert": "Act as an experienced developer skilled in GraphQL and Apollo. Explain how to set up a GraphQL server using Apollo Server and create a basic schema for a social media app with users, posts, and comments.",
         "Python and the Pandas library expert": "You are a data engineer with expertise in Python and the Pandas library. Show how to clean and analyze a given dataset using Pandas, including reading the data, handling missing values, filtering, sorting, and aggregating the data."
     }
+    if only_key:
+        return list(prompts.keys())
     return prompts.get(role, "Role not found.")
 
 
