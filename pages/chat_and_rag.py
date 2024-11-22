@@ -53,6 +53,7 @@ from googlesearch import search
 
 import os
 import shutil
+import requests
 
 # 페이지 정보 정의
 st.set_page_config(page_title="Perplexis:Rag", page_icon=":books:", layout="wide")
@@ -192,8 +193,13 @@ def google_search(query, num_results=10, lang="ko"):
             for idx, result in enumerate(results, 1):
                 # PDF 링크 제외
                 if not result.lower().endswith(".pdf"):
-                    results_list.append(result)
-                    #print(f"[DEBUG] (Google Search URLs) {idx}. {result}")
+                    try:
+                        response = requests.head(result, allow_redirects=True)
+                        if 'application/pdf' not in response.headers.get('Content-Type', ''):
+                            results_list.append(result)
+                            #print(f"[DEBUG] (Google Search URLs) {idx}. {result}")
+                    except Exception as e:
+                        print(f"[ERROR] Failed to check URL {result}: {e}")
             return results_list
         else:
             st.error("No search results found.")
