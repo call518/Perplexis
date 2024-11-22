@@ -142,9 +142,10 @@ default_values = {
     'rag_top_k': None,
     'rag_fetch_k': None,
     'rag_lambda_mult': None,
+    'google_search_query': None,
+    'google_custom_urls': None,
     'google_search_result_count': None,
     'google_search_doc_lang': None,
-    'google_search_query': None,
     'rag_history_user': [],
     'rag_history_ai': [],
     'rag_history_llm_model_name': [],
@@ -312,6 +313,7 @@ def main():
                     st.session_state['document_source'].append(uploaded_file.name)
             elif st.session_state['document_type'] == "Google Search":
                 st.session_state['google_search_query'] = st.text_input("Google Search Query", placeholder="Enter Your Keywords", disabled=st.session_state['is_analyzed'])
+                st.session_state['google_custom_urls'] = st.text_area("Google Search Custom URLs (per Line)", placeholder="Enter Your Keywords", disabled=st.session_state['is_analyzed'])
                 col_google_search_result_count, col_google_search_doc_lang = st.sidebar.columns(2)
                 with col_google_search_result_count:
                     st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])
@@ -478,6 +480,11 @@ def main():
                     
                     if st.session_state['document_type'] == "Google Search":
                         st.session_state['document_source'] = google_search(st.session_state['google_search_query'], num_results=st.session_state['google_search_result_count'], lang=st.session_state['google_search_doc_lang'])
+                        if st.session_state['google_custom_urls']:
+                            custom_urls = st.session_state['google_custom_urls'].splitlines()
+                            for url in custom_urls:
+                                if is_valid_url(url):
+                                    st.session_state['document_source'].append(url)
                         if not st.session_state['document_source']:
                             st.error("[ERROR] No search results found.")
                             st.stop()
