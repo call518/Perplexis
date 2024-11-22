@@ -125,6 +125,7 @@ default_values = {
     'vectorstore_dimension': None,
     'document_type': None,
     'document_source': [],
+    'documents_chunks': [],
     'embeddings': None,
     'llm': None,
     'selected_embedding': None,
@@ -493,26 +494,25 @@ def main():
                         splits = text_splitter.split_documents(docs_contents)
 
                     # 모든 청크 벡터화 및 메타데이터 준비 (for Pinecone에 임베딩)
-                    documents_and_metadata = []
                     if st.session_state['document_type'] == "Google Search":
                         for i, doc in enumerate(splits):
                             document = Document(
                                 page_content=doc.page_content,
                                 metadata={"id": i + 1, "source": st.session_state['document_source'][i // len(splits) * len(st.session_state['document_source'])]}
                             )
-                            documents_and_metadata.append(document)
+                            st.session_state.get('documents_chunks', []).append(document)
                     else:
                         for i, doc in enumerate(splits):
                             document = Document(
                                 page_content=doc.page_content,
                                 metadata={"id": i + 1, "source": st.session_state['document_source'][0]}
                             )
-                            documents_and_metadata.append(document)
+                            st.session_state.get('documents_chunks', []).append(document)
 
                     ### Debugging Print
-                    print(f"[DEBUG] documents_and_metadata chunks ---------------> {len(documents_and_metadata)}")
+                    print(f"[DEBUG] Chunks ---------------> {len(st.session_state.get('documents_chunks', []))}")
                     
-                    st.write(f"Documents Chunks: {len(documents_and_metadata)}")
+                    st.write(f"Documents Chunks: {len(st.session_state.get('documents_chunks', []))}")
 
                     if st.session_state['vectorstore_type'] == "Pinecone":
                         # Pinecone 관련 설정
@@ -552,7 +552,7 @@ def main():
 
                         # Pinecone Embedding 처리
                         vectorstore = PineconeVectorStore.from_documents(
-                            documents_and_metadata,
+                            st.session_state.get('documents_chunks', []),
                             st.session_state['embeddings'],
                             index_name=pinecone_index_name
                         )
@@ -563,7 +563,7 @@ def main():
                             reset_chromadb(chromadb_dir_path)
                         
                         vectorstore = Chroma.from_documents(
-                            documents_and_metadata,
+                            st.session_state.get('documents_chunks', []),
                             st.session_state['embeddings'],
                             persist_directory=f"{chromadb_dir_path}",
                         )
@@ -634,7 +634,7 @@ def main():
                 f"""
                 <div style="border: 1px solid #ddd; padding: 10px; background-color: #e7f3fc; 
                             font-family: Arial, sans-serif; border-radius: 5px; width: 100%;">
-                    <p><b>ℹ️ Google Search Results</b></p>
+                    <p><b>ℹ️ Google Search Results (Chunks: {len(st.session_state.get('documents_chunks', []))})</b></p>
                     <p style="white-space: pre-line;">{multiline_text}</p>
                 </div>
                 """,
@@ -707,8 +707,10 @@ def main():
                     # message(st.session_state["rag_history_ai"][i], key=str(i))
                     
                     with st.chat_message("user"):
+                        st.markdown("**<span style='color: blue;'>You</span>**", unsafe_allow_html=True)
                         st.write(st.session_state["rag_history_user"][i])
                     with st.chat_message("assistant"):
+                        st.markdown(f"**<span style='color: green;'>{st.session_state.get('ai_role', 'Unknown')}</span>**", unsafe_allow_html=True)
                         st.write(st.session_state["rag_history_ai"][i])
                     
                     llm_model_name = st.session_state['rag_history_llm_model_name'][i]
@@ -820,9 +822,11 @@ def main():
                 for message in st.session_state['chat_memory'].chat_memory.messages:
                     if isinstance(message, HumanMessage):
                         with st.chat_message("user"):
+                            st.markdown("**<span style='color: blue;'>You</span>**", unsafe_allow_html=True)
                             st.write(message.content)
                     elif isinstance(message, AIMessage):
                         with st.chat_message("assistant"):
+                            st.markdown(f"**<span style='color: green;'>{st.session_state.get('ai_role', 'Unknown')}</span>**", unsafe_allow_html=True)
                             st.write(message.content)
 
 #----------------------------------------------------
