@@ -157,61 +157,11 @@ default_values = {
 }
 
 def init_session_state():
-    # Get the selected mode from query parameters
-    query_params = st.experimental_get_query_params()
-    selected_mode = query_params.get("selected_mode", ["Chat"])[0]  # Default to 'Chat' if not set
-    default_values = {
-        'selected_mode': selected_mode,
-        'ai_role': None,
-        'system_prompt_content': None,
-        'chat_memory': None,
-        'chat_conversation': None,
-        'chat_response': None,
-        'session_id': str(uuid.uuid4()),
-        'client_remote_ip' : get_remote_ip(),
-        'is_analyzed': False,
-        'vectorstore_type': "pinecone",
-        'vectorstore_dimension': None,
-        'document_type': None,
-        'document_source': [],
-        'embeddings': None,
-        'llm': None,
-        'selected_embedding': None,
-        'selected_ai': None,
-        'temperature': 0.00,
-        'chunk_size': None,
-        'chunk_overlap': None,
-        'retriever': None,
-        'pinecone_index_reset': True,
-        'chromadb_root_reset': True,
-        'rag_search_type': None,
-        'rag_score': 0.01,
-        'rag_top_k': None,
-        'rag_fetch_k': None,
-        'rag_lambda_mult': None,
-        'google_search_result_count': None,
-        'google_search_doc_lang': None,
-        'google_search_query': None,
-        'rag_history_user': [],
-        'rag_history_ai': [],
-        'rag_history_llm_model_name': [],
-        'rag_history_rag_contexts': [],
-        'rag_history_temperature': [],
-        'rag_history_rag_search_type': [],
-        'rag_history_rag_top_k': [],
-        'rag_history_rag_score': [],
-        'rag_history_rag_fetch_k': [],
-        'rag_history_rag_rag_lambda_mult': [],
-        'store': {},
-    }
     for key, value in default_values.items():
         if key not in st.session_state:
             st.session_state[key] = value
         print(f"[DEBUG] (session_state) {key} = {st.session_state.get(key, '')}")
     os.system('rm -rf ./uploads/*')
-
-def on_selected_mode_change():
-    st.experimental_set_query_params(selected_mode=st.session_state['selected_mode'])
 
 init_session_state()
 upload_dir = f"./uploads/{st.session_state['session_id']}"
@@ -303,11 +253,7 @@ def main():
     with st.sidebar:
         st.title("Parameters")
 
-        options = ("Chat", "RAG")
-        index = options.index(st.session_state['selected_mode'])
-        st.radio("**:red[Mode]**", options, index=index, horizontal=True,
-                 disabled=st.session_state['is_analyzed'], key='selected_mode',
-                 on_change=on_selected_mode_change)
+        st.session_state['selected_mode'] = st.radio("**:red[Mode]**", ("Chat", "RAG"), horizontal=True, disabled=st.session_state['is_analyzed'])
 
         st.session_state['ai_role'] = st.selectbox("Role of AI", [
                 "Basic chatbot",
@@ -734,10 +680,6 @@ def main():
             if st.session_state.get('is_analyzed', False) == True:
                 if st.button("Reset", type='primary'):
                     streamlit_js_eval(js_expressions="parent.window.location.reload()")
-        
-        if st.session_state.get('selected_mode', "Chat") == "Chat":
-            if st.button("Reset", type='primary'):
-                streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
 #-----------------------------------------------------------------------------------------------------------
 
@@ -797,7 +739,7 @@ def main():
                 ai_response = result['answer']
                 
                 rag_contexts = result.get('context', [])
-
+                
                 ### Debugging Print
                 # print("<RAG 데이터>")
                 # for context in rag_contexts:
