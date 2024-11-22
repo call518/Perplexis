@@ -11,6 +11,7 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from modules.nav import Navbar
 from modules.common_functions import get_sysetm_prompt_for_role
+from modules.common_functions import get_country_name_by_code
 
 import streamlit as st
 # from streamlit_chat import message
@@ -112,9 +113,8 @@ def get_remote_ip() -> str:
 # Initialize session state with default values
 default_values = {
     'selected_mode': "Chat",
-    'chat_ai_role': None,
-    'chat_response_lang_code': None,
-    'chat_system_prompt': None,
+    'ai_role': None,
+    'system_prompt_content': None,
     'chat_memory': None,
     'chat_conversation': None,
     'chat_response': None,
@@ -141,7 +141,7 @@ default_values = {
     'rag_fetch_k': None,
     'rag_lambda_mult': None,
     'google_search_result_count': None,
-    'google_search_result_lang': None,
+    'google_search_doc_lang': None,
     'google_search_query': None,
     'rag_history_user': [],
     'rag_history_ai': [],
@@ -255,6 +255,75 @@ def main():
 
         st.session_state['selected_mode'] = st.radio("**:red[Mode]**", ("Chat", "RAG"), horizontal=True, disabled=st.session_state['is_analyzed'])
 
+        st.session_state['ai_role'] = st.selectbox("Role of AI", [
+                "Basic chatbot",
+                "Customer support agent",
+                "Technical support agent",
+                "Sales representative",
+                "HR recruiter",
+                "Language translator",
+                "Legal advisor",
+                "Medical consultant",
+                "Storyteller",
+                "Poet",
+                "Academician",
+                "Journal reviewer",
+                "Journalist",
+                "Tech writer",
+                "Title generator for written pieces",
+                "Travel blogger",
+                "Nutritionist",
+                "Financial advisor",
+                "Art historian",
+                "Professional resume writer",
+                "Sports commentator",
+                "Interior designer",
+                "Music critic",
+                "Literary scholar",
+                "Language tutor",
+                "Chef",
+                "Historian",
+                "Fashion expert",
+                "Film director",
+                "Marketing consultant",
+                "Tech journalist",
+                "Fitness instructor",
+                "Environmental advocate",
+                "Career coach",
+                "Wedding planner",
+                "Node.js expert",
+                "React expert",
+                "Frontend developer experienced with CSS Grid",
+                "Django and Python full-stack expert",
+                "Vue.js expert",
+                "Frontend developer experienced with HTML, CSS, JavaScript",
+                "Angular and RxJS expert",
+                "GraphQL expert using Apollo Server and Node.js",
+                "PHP and Laravel expert",
+                "JavaScript expert",
+                "Web Components and the Shadow DOM expert",
+                "Progressive Web App (PWA) expert",
+                "Ruby on Rails expert",
+                "Web accessibility expert",
+                "WebSockets expert",
+                "Svelte expert",
+                "Flask framework expert",
+                "Android app expert",
+                "React and Material-UI expert",
+                "Backend developer with expertise in Node.js",
+                "MERN(MongoDB/Express/React/Node.js) stack expert",
+                "iOS, Swift and SwiftUI expert",
+                "Django, Python web framework expert",
+                "Ruby on Rails deploying expert",
+                "SPA with Vue.js expert",
+                "PHP and the Laravel framework expert",
+                "Java and the Spring Boot framework expert",
+                "DevOps engineer",
+                "Angular and RxJS expert",
+                "GraphQL and Apollo expert",
+                "Python and the Pandas library expert",
+            ], index=0)
+
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             # Contextualize question (질답 히스토리를 이용해, 주어진 질문을 문맥상 정확하고 독립적인 질문으로 보완/재구성 처리해서 반환)
             contextualize_q_system_prompt = (
@@ -270,12 +339,14 @@ def main():
             )
 
             # QA 시스템 프롬프트 설정 (사용자 질문과, 벡터DB로부터 얻은 결과를 조합해 최종 답변을 작성하기 위한 행동 지침 및 질답 체인 생성)
+            system_prompt_content = get_sysetm_prompt_for_role(st.session_state['ai_role'])
             system_prompt = (
                 # "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise."
                 # "당신은 모든 분야에서 전문가 입니다. 다음 검색된 컨텍스트 조각을 사용하여 질문자의 질문에 체계적인 답변을 작성하세요. 답을 모르면 모른다고 말하세요. 최소 50개의 문장을 사용하고 답변은 간결하면서도 최대한 상세한 정보를 포함해야 합니다. (답변은 한국어로 작성하세요.)"
                 # "You are an expert in all fields. Using the following retrieved context snippets, formulate a systematic answer to the asker's question. If you don't know the answer, say you don't know. Use at least 50 sentences, and ensure the response is concise yet contains as much detailed information as possible. (The response should be written in Korean.)"
                 # "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible. (Write the answer in Korean.)"
-                "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible. (Write the answer in Korean.)"
+                # "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible. (Write the answer in Korean.)"
+                f"{system_prompt_content}"
                 "\n\n"
                 "{context}"
             )
@@ -301,11 +372,11 @@ def main():
                     st.session_state['document_source'].append(uploaded_file.name)
             elif st.session_state['document_type'] == "Google Search":
                 st.session_state['google_search_query'] = st.text_input("Google Search Query", placeholder="Enter Your Keywords", disabled=st.session_state['is_analyzed'])
-                col_google_search_result_count, col_google_search_result_lang = st.sidebar.columns(2)
+                col_google_search_result_count, col_google_search_doc_lang = st.sidebar.columns(2)
                 with col_google_search_result_count:
                     st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])
-                with col_google_search_result_lang:
-                    st.session_state['google_search_result_lang'] = st.selectbox("[Search Language](https://developers.google.com/custom-search/docs/json_api_reference?hl=ko#countryCodes)", [ "Any", "en", "ko", "jp", "cn"], disabled=st.session_state['is_analyzed'])
+                with col_google_search_doc_lang:
+                    st.session_state['google_search_doc_lang'] = st.selectbox("Search Document Language", [ "Any", "en", "ko", "jp", "cn"], disabled=st.session_state['is_analyzed'])
             else:
                 st.error("[ERROR] Unsupported document type")
                 st.stop()
@@ -431,77 +502,6 @@ def main():
                 temperature=st.session_state['temperature'],
             )
 
-        if st.session_state.get('selected_mode', "Chat") == "Chat":        
-            st.session_state['chat_response_lang_code'] = st.selectbox("Response Language", [ "Any", "en", "ko", "jp", "cn"], index=0)
-            st.session_state['chat_ai_role'] = st.selectbox("Role of AI", [
-                    "Basic chatbot",
-                    "Customer support agent",
-                    "Technical support agent",
-                    "Sales representative",
-                    "HR recruiter",
-                    "Language translator",
-                    "Legal advisor",
-                    "Medical consultant",
-                    "Storyteller",
-                    "Poet",
-                    "Academician",
-                    "Journal reviewer",
-                    "Journalist",
-                    "Tech writer",
-                    "Title generator for written pieces",
-                    "Travel blogger",
-                    "Nutritionist",
-                    "Financial advisor",
-                    "Art historian",
-                    "Professional resume writer",
-                    "Sports commentator",
-                    "Interior designer",
-                    "Music critic",
-                    "Literary scholar",
-                    "Language tutor",
-                    "Chef",
-                    "Historian",
-                    "Fashion expert",
-                    "Film director",
-                    "Marketing consultant",
-                    "Tech journalist",
-                    "Fitness instructor",
-                    "Environmental advocate",
-                    "Career coach",
-                    "Wedding planner",
-                    "Node.js expert",
-                    "React expert",
-                    "Frontend developer experienced with CSS Grid",
-                    "Django and Python full-stack expert",
-                    "Vue.js expert",
-                    "Frontend developer experienced with HTML, CSS, JavaScript",
-                    "Angular and RxJS expert",
-                    "GraphQL expert using Apollo Server and Node.js",
-                    "PHP and Laravel expert",
-                    "JavaScript expert",
-                    "Web Components and the Shadow DOM expert",
-                    "Progressive Web App (PWA) expert",
-                    "Ruby on Rails expert",
-                    "Web accessibility expert",
-                    "WebSockets expert",
-                    "Svelte expert",
-                    "Flask framework expert",
-                    "Android app expert",
-                    "React and Material-UI expert",
-                    "Backend developer with expertise in Node.js",
-                    "MERN(MongoDB/Express/React/Node.js) stack expert",
-                    "iOS, Swift and SwiftUI expert",
-                    "Django, Python web framework expert",
-                    "Ruby on Rails deploying expert",
-                    "SPA with Vue.js expert",
-                    "PHP and the Laravel framework expert",
-                    "Java and the Spring Boot framework expert",
-                    "DevOps engineer",
-                    "Angular and RxJS expert",
-                    "GraphQL and Apollo expert",
-                    "Python and the Pandas library expert",
-                ], index=0)
-
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             # 사용자 선택 및 입력값을 기본으로 RAG 데이터 준비
             if st.button("Embedding", disabled=st.session_state['is_analyzed']):
@@ -537,7 +537,7 @@ def main():
                         shutil.rmtree(upload_dir)
                     
                     if st.session_state['document_type'] == "Google Search":
-                        st.session_state['document_source'] = google_search(st.session_state['google_search_query'], num_results=st.session_state['google_search_result_count'], lang=st.session_state['google_search_result_lang'])
+                        st.session_state['document_source'] = google_search(st.session_state['google_search_query'], num_results=st.session_state['google_search_result_count'], lang=st.session_state['google_search_doc_lang'])
                         if not st.session_state['document_source']:
                             st.error("[ERROR] No search results found.")
                             st.stop()
@@ -835,31 +835,11 @@ def main():
 
     ### Chat 모드 처리
     if st.session_state.get('selected_mode', "Chat") == "Chat":
-        chat_response_lang_code = st.session_state.get('chat_response_lang_code', "Any")
-        chat_response_lang = "Any"
-        if chat_response_lang_code == "en":
-            chat_response_lang = "English"
-        elif chat_response_lang_code == "ko":
-            chat_response_lang = "Korean"
-        elif chat_response_lang_code == "jp":
-            chat_response_lang = "Japanese"
-        elif chat_response_lang_code == "cn":
-            chat_response_lang = "Chinese"
-        else:
-            chat_response_lang = "Any"
-        
         # system_prompt_content = "You are a chatbot having a conversation with a human."
         # system_prompt_content = "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations."
-        system_prompt_content = get_sysetm_prompt_for_role(st.session_state.get('chat_ai_role', "Basic chatbot"))
+        st.session_state['system_prompt_content'] = get_sysetm_prompt_for_role(st.session_state.get('ai_role', "Basic chatbot"))
         
-        system_prompt_common = "You should also be able to answer questions about the topic."
-        
-        system_prompt_lang = f"(Write the answer in {chat_response_lang}.)"
-        
-        st.session_state['chat_system_prompt'] = system_prompt_content + " " + system_prompt_common
-        
-        if chat_response_lang_code != "Any":
-            st.session_state['chat_system_prompt'] += " " + system_prompt_lang
+        system_prompt = st.session_state['system_prompt_content']
 
         ### Chat Memory 객체 생성 (최초 1회만 생성)
         if st.session_state.get('chat_memory', None) is None:
@@ -868,7 +848,7 @@ def main():
         ### Chat Prompt 객체 생성
         prompt = ChatPromptTemplate(
             messages=[
-                SystemMessagePromptTemplate.from_template(st.session_state['chat_system_prompt']),
+                SystemMessagePromptTemplate.from_template(system_prompt),
                 MessagesPlaceholder(variable_name="chat_memory"),
                 HumanMessagePromptTemplate.from_template("{question}")
             ]
