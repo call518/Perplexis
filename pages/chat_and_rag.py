@@ -56,7 +56,7 @@ import requests
 
 # 페이지 정보 정의
 st.set_page_config(page_title="Perplexis:Rag", page_icon=":books:", layout="wide")
-st.title(":books: _:red[Perplexis]_ Chat & RAG")
+st.title(":books: _:red[Perplexis]_ RAG & Chat")
 
 ### Mandatory Keys 설정
 ### 1. secretes.toml 파일에 설정된 KEY 값이 최우선 적용.
@@ -270,7 +270,7 @@ def main():
     with st.sidebar:
         st.title("Parameters")
 
-        st.session_state['selected_mode'] = st.radio("**:red[Mode]**", ("Chat", "RAG"), horizontal=True, disabled=st.session_state['is_analyzed'])
+        st.session_state['selected_mode'] = st.radio("**:red[Mode]**", ("RAG", "Chat"), index=0, horizontal=True, disabled=st.session_state['is_analyzed'])
 
         st.session_state['ai_role'] = st.selectbox("Role of AI", get_sysetm_prompt_for_role(only_key=True), index=0)
 
@@ -715,6 +715,7 @@ def main():
             if st.session_state.get('is_analyzed', False) == True:
                 if st.button("Reset", type='primary'):
                     streamlit_js_eval(js_expressions="parent.window.location.reload()")
+                    # st.experimental_set_query_params(page="chat_and_rag")
                     
         if st.session_state.get('selected_mode', "Chat") == "Chat":
             if st.button("Reset", type='primary'):

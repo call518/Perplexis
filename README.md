@@ -2,9 +2,9 @@
 
 `Perplexis` is Private AI Search Engine (like Perplexity)
 
-## Chat & RAG Application Guide
+## RAG & Chat Application Guide
 
-Welcome to the Chat & RAG Application. This application allows you to interact with a chatbot equipped with RAG (Retrieval-Augmented Generation) capabilities. Below is a guide to its functions, features, and how to use it.
+Welcome to the RAG & Chat Application. This application allows you to interact with a chatbot equipped with RAG (Retrieval-Augmented Generation) capabilities. Below is a guide to its functions, features, and how to use it.
 
 ### Features
 
@@ -28,7 +28,7 @@ Welcome to the Chat & RAG Application. This application allows you to interact w
 - The application supports multiple languages selectable from the sidebar.
 - In 'RAG' mode, context from documents or search results is used to provide more accurate answers.
 
-Enjoy your time with the Chat & RAG Application!
+Enjoy your time with the RAG & Chat Application!
 
 # Tested Environments
 
