@@ -124,7 +124,7 @@ default_values = {
     'document_type': None,
     'document_source': [],
     'documents_chunks': [],
-    'embeddings_instance': None,
+    'embedding_instance': None,
     'llm': None,
     'llm_top_p': 0.80,
     'llm_openai_presence_penalty': 0.00,
@@ -376,6 +376,8 @@ def main():
                 # nomic-embed-text: dimension=768 (A high-performing open embedding model with a large token context window.) ("num_ctx": 8192)
                 # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
                 st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large"], index=0,  disabled=st.session_state['is_analyzed'])
+
+            ### Embeddings 모델 차원 설정 (이유: Pinecone에서는 dimension 설정 필수)
             embedding_dimensions = {
                 "text-embedding-3-small": 1536,
                 "text-embedding-3-large": 3072,
@@ -384,10 +386,14 @@ def main():
                 "all-minilm:33m": 384,
                 "nomic-embed-text": 768,
                 "mxbai-embed-large": 1024,
+                # "snowflake-arctic-embed:22m": 384,
+                # "snowflake-arctic-embed:33m": 384,
+                # "snowflake-arctic-embed:110m": 768,
+                # "snowflake-arctic-embed:137m": 768,
+                # "snowflake-arctic-embed:335m": 1024,
             }
-            selected_model = st.session_state.get('selected_embedding_model', None)
-            if selected_model in embedding_dimensions:
-                st.session_state['selected_embedding_dimension'] = embedding_dimensions[selected_model]
+            if st.session_state.get('selected_embedding_model', None) in embedding_dimensions:
+                st.session_state['selected_embedding_dimension'] = embedding_dimensions[st.session_state.get('selected_embedding_model', None)]
             else:
                 st.error("[ERROR] Unsupported embedding model")
                 st.stop()
@@ -397,11 +403,11 @@ def main():
             if st.session_state['selected_ai'] == "OpenAI":
                 st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4, disabled=st.session_state['is_analyzed'])
             else:
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=0, disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=1, disabled=st.session_state['is_analyzed'])
         with col_ai_temperature:
             # st.session_state['temperature'] = st.text_input("LLM Temperature (0.0 ~ 1.0)", value=st.session_state['temperature'])
             st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05, disabled=st.session_state['is_analyzed'])
-  
+
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
             with col_chunk_size:
@@ -477,14 +483,16 @@ def main():
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             # Embedding 선택 및 초기화
             if st.session_state['selected_embedding_provider'] == "OpenAI":
-                st.session_state['embeddings_instance'] = OpenAIEmbeddings(
+                st.session_state['embedding_instance'] = OpenAIEmbeddings(
                     base_url = os.environ["OPENAI_BASE_URL"],
-                    model = st.session_state.get('selected_embedding_model', None)
+                    model = st.session_state.get('selected_embedding_model', None),
+                    # dimensions = st.session_state['selected_embedding_dimension'],
                 )
             else:
-                st.session_state['embeddings_instance'] = OllamaEmbeddings(
+                st.session_state['embedding_instance'] = OllamaEmbeddings(
                     base_url = os.environ["OLLAMA_BASE_URL"],
-                    model = st.session_state.get('selected_embedding_model', None)
+                    model = st.session_state.get('selected_embedding_model', None),
+                    # dimensions = st.session_state['selected_embedding_dimension'],
                 )
 
         # AI 모델 선택 및 초기화
@@ -647,7 +655,7 @@ def main():
                         # Pinecone Embedding 처리
                         vectorstore = PineconeVectorStore.from_documents(
                             st.session_state.get('documents_chunks', []),
-                            st.session_state['embeddings_instance'],
+                            st.session_state['embedding_instance'],
                             index_name=pinecone_index_name
                         )
                     else:
@@ -658,7 +666,7 @@ def main():
                         
                         vectorstore = Chroma.from_documents(
                             st.session_state.get('documents_chunks', []),
-                            st.session_state['embeddings_instance'],
+                            st.session_state['embedding_instance'],
                             persist_directory=f"{chromadb_dir_path}",
                         )
                     

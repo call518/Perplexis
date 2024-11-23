@@ -32,8 +32,8 @@ Enjoy your time with the Chat & RAG Application!
 
 # Tested Environments
 
-- Python : 3.12.7
-- ollama version is 0.4.1
+- `Python` : 3.10.14
+- `ollama` : 0.4.1
 
 # Configure & Run
 
