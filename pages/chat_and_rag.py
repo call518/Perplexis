@@ -138,6 +138,7 @@ default_values = {
     'selected_embedding_dimension': None,
     'vectorstore_type': "pinecone",
     'selected_ai': None,
+    'selected_llm': None,
     'temperature': 0.20,
     'chunk_size': None,
     'chunk_overlap': None,
