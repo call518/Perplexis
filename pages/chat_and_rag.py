@@ -126,12 +126,19 @@ default_values = {
     'documents_chunks': [],
     'embeddings_instance': None,
     'llm': None,
+    'llm_top_p': 0.80,
+    'llm_openai_presence_penalty': 0.00,
+    'llm_openai_frequency_penalty': 1.00,
+    'llm_openai_max_tokens': 2048,
+    'llm_ollama_repeat_penalty': 1.00,
+    'llm_ollama_num_ctx': 2048,
+    'llm_ollama_num_predict': -1,
     'selected_embedding_provider': None,
     'selected_embedding_model': None,
     'selected_embedding_dimension': None,
     'vectorstore_type': "pinecone",
     'selected_ai': None,
-    'temperature': 0.00,
+    'temperature': 0.20,
     'chunk_size': None,
     'chunk_overlap': None,
     'retriever': None,
@@ -356,43 +363,47 @@ def main():
                 os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
                 os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
 
-
-        ### Embeddings 모델 선택/설정
-        if st.session_state['selected_ai'] == "OpenAI":
-            # text-embedding-3-small: dimension=1536 (Increased performance over 2nd generation ada embedding model)
-            # text-embedding-3-large: dimension=3072 (Most capable embedding model for both english and non-english tasks)
-            # text-embedding-ada-002: dimension=1536 (Most capable 2nd generation embedding model, replacing 16 first generation models)
-            st.session_state['selected_embedding_model'] = st.selectbox("Embeddings Model", ["text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"], index=0,  disabled=st.session_state['is_analyzed'])
-        else:
-            # mxbai-embed-large: dimension=1024 (State-of-the-art large embedding model from mixedbread.ai) ("num_ctx": 512)
-            # nomic-embed-text: dimension=768 (A high-performing open embedding model with a large token context window.) ("num_ctx": 8192)
-            # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
-            st.session_state['selected_embedding_model'] = st.selectbox("Embeddings Model", ["all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large"], index=0,  disabled=st.session_state['is_analyzed'])
-        embedding_dimensions = {
-            "text-embedding-3-small": 1536,
-            "text-embedding-3-large": 3072,
-            "text-embedding-ada-002": 1536,
-            "all-minilm:22m": 384,
-            "all-minilm:33m": 384,
-            "nomic-embed-text": 768,
-            "mxbai-embed-large": 1024,
-        }
-        selected_model = st.session_state.get('selected_embedding_model', None)
-        if selected_model in embedding_dimensions:
-            st.session_state['selected_embedding_dimension'] = embedding_dimensions[selected_model]
-        else:
-            st.error("[ERROR] Unsupported embedding model")
-            st.stop()
-
-        col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
-        with col_ai_llm:
+        if st.session_state.get('selected_mode', "Chat") == "RAG":
+            ### Embeddings 모델 선택/설정
             if st.session_state['selected_ai'] == "OpenAI":
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4,  disabled=st.session_state['is_analyzed'])
+                # text-embedding-3-small: dimension=1536 (Increased performance over 2nd generation ada embedding model)
+                # text-embedding-3-large: dimension=3072 (Most capable embedding model for both english and non-english tasks)
+                # text-embedding-ada-002: dimension=1536 (Most capable 2nd generation embedding model, replacing 16 first generation models)
+                st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"], index=0,  disabled=st.session_state['is_analyzed'])
             else:
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=0, disabled=st.session_state['is_analyzed'])
-        with col_ai_temperature:
-            # st.session_state['temperature'] = st.text_input("LLM Temperature (0.0 ~ 1.0)", value=st.session_state['temperature'])
-            st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05, disabled=st.session_state['is_analyzed'])
+                # mxbai-embed-large: dimension=1024 (State-of-the-art large embedding model from mixedbread.ai) ("num_ctx": 512)
+                # nomic-embed-text: dimension=768 (A high-performing open embedding model with a large token context window.) ("num_ctx": 8192)
+                # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
+                st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large"], index=0,  disabled=st.session_state['is_analyzed'])
+            embedding_dimensions = {
+                "text-embedding-3-small": 1536,
+                "text-embedding-3-large": 3072,
+                "text-embedding-ada-002": 1536,
+                "all-minilm:22m": 384,
+                "all-minilm:33m": 384,
+                "nomic-embed-text": 768,
+                "mxbai-embed-large": 1024,
+            }
+            selected_model = st.session_state.get('selected_embedding_model', None)
+            if selected_model in embedding_dimensions:
+                st.session_state['selected_embedding_dimension'] = embedding_dimensions[selected_model]
+            else:
+                st.error("[ERROR] Unsupported embedding model")
+                st.stop()
+
+        if st.session_state['selected_ai'] == "OpenAI":
+            st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4, disabled=st.session_state['is_analyzed'])
+        else:
+            st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=0, disabled=st.session_state['is_analyzed'])
+        # col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
+        # with col_ai_llm:
+        #     if st.session_state['selected_ai'] == "OpenAI":
+        #         st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4,  disabled=st.session_state['is_analyzed'])
+        #     else:
+        #         st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=0, disabled=st.session_state['is_analyzed'])
+        # with col_ai_temperature:
+        #     # st.session_state['temperature'] = st.text_input("LLM Temperature (0.0 ~ 1.0)", value=st.session_state['temperature'])
+        #     st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05, disabled=st.session_state['is_analyzed'])
         
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
@@ -411,20 +422,44 @@ def main():
             if st.session_state['rag_search_type'] == "similarity_score_threshold":
                 col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
                 with col_rag_arg1:
-                    st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=20, step=1, disabled=st.session_state['is_analyzed'])        
+                    st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, value=20, step=1, disabled=st.session_state['is_analyzed'])        
                 with col_rag_arg2:
                     st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
             elif st.session_state['rag_search_type'] == "similarity":
-                st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=20, step=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, value=20, step=1, disabled=st.session_state['is_analyzed'])
             elif st.session_state['rag_search_type'] == "mmr":
                 col_rag_arg1, col_rag_arg2, col_rag_arg3 = st.sidebar.columns(3)
                 with col_rag_arg1:
-                    st.session_state['rag_top_k'] = st.number_input("TOP-K", min_value=1, value=20, step=1, disabled=st.session_state['is_analyzed'])
+                    st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, value=20, step=1, disabled=st.session_state['is_analyzed'])
                 with col_rag_arg2:
-                    st.session_state['rag_fetch_k'] = st.number_input("Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
+                    st.session_state['rag_fetch_k'] = st.number_input("MMR Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
                 with col_rag_arg3:
-                    st.session_state['rag_lambda_mult'] = st.number_input("Lambda Mult", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
+                    st.session_state['rag_lambda_mult'] = st.number_input("MMR Lambda Mult", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
 
+        ### LLM 모델 설정
+        col_llm_top_p, col_repeat_penalty = st.sidebar.columns(2)
+        with col_llm_top_p:
+            st.session_state['llm_top_p'] = st.number_input("top_p", min_value=0.00, max_value=1.00, value=st.session_state.get('llm_top_p', 0.80), step=0.05, disabled=st.session_state['is_analyzed'])
+        with col_repeat_penalty:
+            if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
+                st.session_state['llm_openai_frequency_penalty'] = st.number_input("frequency_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_frequency_penalty', 1.00), step=0.05, disabled=st.session_state['is_analyzed'])
+            if st.session_state.get('selected_ai', "Ollama") == "Ollama":
+                st.session_state['llm_ollama_repeat_penalty'] = st.number_input("repeat_penalty", min_value=0.00, value=st.session_state.get('llm_ollama_repeat_penalty', 1.10), step=0.05, disabled=st.session_state['is_analyzed'])
+
+        if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
+            col_llm_openai_max_tokens, col_llm_openai_presence_penalty = st.sidebar.columns(2)
+            with col_llm_openai_max_tokens:
+                st.session_state['llm_openai_max_tokens'] = st.number_input("max_tokens", min_value=2048, value=st.session_state.get('llm_openai_max_tokens', 2048), disabled=st.session_state['is_analyzed'])
+            with col_llm_openai_presence_penalty:
+                st.session_state['llm_openai_presence_penalty'] = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_presence_penalty', 1.00), step=0.05, disabled=st.session_state['is_analyzed'])
+        if st.session_state.get('selected_ai', "Ollama") == "Ollama":
+            col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
+            with col_llm_ollama_num_ctx:
+                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=2048, value=st.session_state.get('llm_ollama_num_ctx', 2048), disabled=st.session_state['is_analyzed'])
+            with col_llm_ollama_num_predict:
+                st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=st.session_state.get('llm_ollama_num_predict', -1), disabled=st.session_state['is_analyzed'])
+
+        ### Set OpenAI API Key
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
                 if not os.environ["OPENAI_API_KEY"]:
@@ -446,29 +481,51 @@ def main():
             # Embedding 선택 및 초기화
             if st.session_state['selected_embedding_provider'] == "OpenAI":
                 st.session_state['embeddings_instance'] = OpenAIEmbeddings(
-                    base_url=os.environ["OPENAI_BASE_URL"],
-                    model=st.session_state.get('selected_embedding_model', None)
+                    base_url = os.environ["OPENAI_BASE_URL"],
+                    model = st.session_state.get('selected_embedding_model', None)
                 )
             else:
                 st.session_state['embeddings_instance'] = OllamaEmbeddings(
-                    base_url=os.environ["OLLAMA_BASE_URL"],
-                    model=st.session_state.get('selected_embedding_model', None)
+                    base_url = os.environ["OLLAMA_BASE_URL"],
+                    model = st.session_state.get('selected_embedding_model', None)
                 )
 
         # AI 모델 선택 및 초기화
         if st.session_state['selected_ai'] == "OpenAI":
             st.session_state['llm'] = ChatOpenAI(
-                base_url=os.environ["OPENAI_BASE_URL"],
-                model=st.session_state['selected_llm'],
-                temperature=st.session_state['temperature'],
-                verbose=True,
+                base_url = os.environ["OPENAI_BASE_URL"],
+                model = st.session_state['selected_llm'],
+                temperature = st.session_state['temperature'],
+                cache = False,
+                streaming = False,
+                presence_penalty = 0.0,
+                frequency_penalty = 0.3,
+                stream_usage = False,
+                n = 1,
+                top_p = st.session_state['llm_top_p'],
+                max_tokens = None,
+                verbose = True,
             )
         else:
             st.session_state['llm'] = OllamaLLM(
-                base_url=os.environ["OLLAMA_BASE_URL"],
-                model=st.session_state['selected_llm'],
-                temperature=st.session_state['temperature'],
-                verbose=True,
+                base_url = os.environ["OLLAMA_BASE_URL"],
+                model = st.session_state['selected_llm'],
+                temperature = st.session_state['temperature'],
+                cache = False,
+                # num_ctx = None,
+                # num_predict = None,
+                num_ctx = 16384,
+                num_predict = 16384,
+                num_gpu = None,
+                num_thread = None,
+                repeat_last_n = None,
+                repeat_penalty = None,
+                tfs_z = None,
+                top_k = None,
+                top_p = st.session_state['llm_top_p'],
+                format = "", # Literal['', 'json'] (default: "")
+                keep_alive = None,
+                verbose = True,
             )
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
@@ -765,7 +822,7 @@ def main():
                         rag_score = None
                     
                     #st.write(f"Embeddings: {st.session_state.get('selected_embedding_provider', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['rag_history_rag_contexts'][-1])} / Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
-                    #st.write(f"RAG TOP-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
+                    #st.write(f"RAG Top-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
 
                     # st.markdown(f"""
                     #     <p style='color: #2E9AFE;'>
@@ -775,7 +832,7 @@ def main():
                     #         - <b>Temperature</b>: {temperature}<br>
                     #         - <b>RAG Contexts</b>: {len(st.session_state['rag_history_rag_contexts'][-1])}<br>
                     #         - <b>Pinecone Metric</b>: {st.session_state.get('pinecone_metric', 'Unknown')}<br>
-                    #         - <b>RAG TOP-K</b>: {rag_top_k}<br>
+                    #         - <b>RAG Top-K</b>: {rag_top_k}<br>
                     #         - <b>RAG Search Type</b>: {rag_search_type}<br>
                     #         - <b>RAG Score</b>: {st.session_state.get('rag_score', 'Unknown')}<br>
                     #         - <b>RAG Fetch-K</b>: {rag_fetch_k}<br>
@@ -798,7 +855,7 @@ def main():
                                 - <b>Temperature</b>: <font color=black>{temperature}</font><br>
                                 - <b>RAG Contexts</b>: <font color=black>{len(st.session_state['rag_history_rag_contexts'][-1])}</font><br>
                                 - <b>Pinecone Metric</b>: <font color=black>{st.session_state.get('pinecone_metric', None)}</font><br>
-                                - <b>RAG TOP-K</b>: <font color=black>{rag_top_k}</font><br>
+                                - <b>RAG Top-K</b>: <font color=black>{rag_top_k}</font><br>
                                 - <b>RAG Search Type</b>: <font color=black>{rag_search_type}</font><br>
                                 - <b>RAG Score</b>: <font color=black>{rag_score}</font><br>
                                 - <b>RAG Fetch-K</b>: <font color=black>{rag_fetch_k}</font><br>
