@@ -873,6 +873,7 @@ def main():
                                 - <b>RAG Score</b>: <font color=black>{rag_score}</font><br>
                                 - <b>RAG Fetch-K</b>: <font color=black>{rag_fetch_k}</font><br>
                                 - <b>RAG Lambda Mult</b>: <font color=black>{rag_lambda_mult}</font><br>
+                                
                             </div>
                             """,
                             unsafe_allow_html=True,

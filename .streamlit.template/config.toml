@@ -20,7 +20,7 @@ maxUploadSize = 20
 
 [browser]
 # 사용 통계 수집 (기본값: true)
-#gatherUsageStats = true
+gatherUsageStats = false
 # 서버 주소 (기본값: "localhost")
 #serverAddress = "localhost"
 
