@@ -857,8 +857,15 @@ def main():
                                 - <b>Chunk-Size</b>: <font color=black>{st.session_state.get('chunk_size', None)}</font><br>
                                 - <b>Chunk-Overlap</b>: <font color=black>{st.session_state.get('chunk_overlap', None)}</font><br>
                                 - <b>AI</b>: <font color=black>{st.session_state.get('selected_ai', 'Unknown AI')}</font><br>
-                                - <b>LLM</b>: <font color=black>{llm_model_name}</font><br>
-                                - <b>Temperature</b>: <font color=black>{temperature}</font><br>
+                                - <b>LLM Model</b>: <font color=black>{llm_model_name}</font><br>
+                                - <b>LLM Args(Common) temperature</b>: <font color=black>{temperature}</font><br>
+                                - <b>LLM Args(Common) top_p</b>: <font color=black>{st.session_state.get('llm_top_p', None)}</font><br>
+                                - <b>LLM Args(OpenAI) presence_penalty</b>: <font color=black>{st.session_state.get('llm_openai_presence_penalty', None)}</font><br>
+                                - <b>LLM Args(OpenAI) frequency_penalty</b>: <font color=black>{st.session_state.get('llm_openai_frequency_penalty', None)}</font><br>
+                                - <b>LLM Args(OpenAI) max_tokens</b>: <font color=black>{st.session_state.get('llm_openai_max_tokens', None)}</font><br>
+                                - <b>LLM Args(Ollama) repeat_penalty</b>: <font color=black>{st.session_state.get('llm_ollama_repeat_penalty', None)}</font><br>
+                                - <b>LLM Args(Ollama) num_ctx</b>: <font color=black>{st.session_state.get('llm_ollama_fnum_ctx', None)}</font><br>
+                                - <b>LLM Args(Ollama) num_predict</b>: <font color=black>{st.session_state.get('llm_ollama_num_predict', None)}</font><br>
                                 - <b>RAG Contexts</b>: <font color=black>{len(st.session_state['rag_history_rag_contexts'][-1])}</font><br>
                                 - <b>Pinecone Metric</b>: <font color=black>{st.session_state.get('pinecone_metric', None)}</font><br>
                                 - <b>RAG Top-K</b>: <font color=black>{rag_top_k}</font><br>
