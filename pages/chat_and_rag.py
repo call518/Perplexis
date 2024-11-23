@@ -1,4 +1,4 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb pysqlite3-binary
+# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb pysqlite3-binary 
 # pip freeze > requirements.txt
 # pip list --format=freeze > requirements.txt
 
@@ -28,8 +28,9 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.llms import Ollama
-from langchain_community.embeddings import OllamaEmbeddings
+# from langchain_community.llms import Ollama
+# from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaLLM, OllamaEmbeddings
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -317,7 +318,7 @@ def main():
                 st.session_state['google_custom_urls'] = st.text_area("Google Search Custom URLs (per Line)", placeholder="Enter Your Keywords", disabled=st.session_state['is_analyzed'])
                 col_google_search_result_count, col_google_search_doc_lang = st.sidebar.columns(2)
                 with col_google_search_result_count:
-                    st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])
+                    st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
                 with col_google_search_doc_lang:
                     st.session_state['google_search_doc_lang'] = st.selectbox("Search Document Language", [ "Any", "en", "ko", "jp", "cn"], disabled=st.session_state['is_analyzed'])
             else:
@@ -418,7 +419,6 @@ def main():
             # Embedding 선택 및 초기화
             if st.session_state['selected_embeddings'] == "OpenAI":
                 st.session_state['embeddings'] = OpenAIEmbeddings(
-                    api_key=os.environ["OPENAI_API_KEY"],
                     base_url=os.environ["OPENAI_BASE_URL"],
                     model="text-embedding-3-large" # dimension = 3072
                 )
@@ -433,17 +433,17 @@ def main():
         # AI 모델 선택 및 초기화
         if st.session_state['selected_ai'] == "OpenAI":
             st.session_state['llm'] = ChatOpenAI(
-                api_key=os.environ["OPENAI_API_KEY"],
                 base_url=os.environ["OPENAI_BASE_URL"],
                 model=st.session_state['selected_llm'],
                 temperature=st.session_state['temperature'],
+                verbose=True,
             )
         else:
-            st.session_state['llm'] = Ollama(
+            st.session_state['llm'] = OllamaLLM(
                 base_url=os.environ["OLLAMA_BASE_URL"],
                 model=st.session_state['selected_llm'],
                 temperature=st.session_state['temperature'],
-                num_predict=64
+                verbose=True,
             )
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":

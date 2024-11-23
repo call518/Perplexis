@@ -50,11 +50,13 @@ $ ollama pull gemma2:2b
 $ ollama pull gemma2:9b
 $ ollama pull gemma2:27b
 
-$ ollama pull mistral
+$ ollama pull mistral:7b
 
-$ ollama pull llama3.2
+$ ollama pull llama3.2:1b
+$ ollama pull llama3.2:3b
 
-$ ollama pull codegemma
+$ ollama pull codegemma:2b
+$ ollama pull codegemma:7b
 ```
 
 ## Setup Default API Keys (Optional)
