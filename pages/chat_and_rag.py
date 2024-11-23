@@ -28,10 +28,8 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-# from langchain_community.llms import Ollama
-# from langchain_community.embeddings import OllamaEmbeddings
-from langchain_ollama import OllamaLLM, OllamaEmbeddings
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_ollama import OllamaLLM, OllamaEmbeddings
 from langchain.prompts import (
     ChatPromptTemplate,
     MessagesPlaceholder,
@@ -123,14 +121,15 @@ default_values = {
     'session_id': str(uuid.uuid4()),
     'client_remote_ip' : get_remote_ip(),
     'is_analyzed': False,
-    'vectorstore_type': "pinecone",
-    'vectorstore_dimension': None,
     'document_type': None,
     'document_source': [],
     'documents_chunks': [],
-    'embeddings': None,
+    'embeddings_instance': None,
     'llm': None,
-    'selected_embedding': None,
+    'selected_embedding_provider': None,
+    'selected_embedding_model': None,
+    'selected_embedding_dimension': None,
+    'vectorstore_type': "pinecone",
     'selected_ai': None,
     'temperature': 0.00,
     'chunk_size': None,
@@ -330,7 +329,7 @@ def main():
             with col_ai:
                 st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
             with col_embedding:
-                st.session_state['selected_embeddings'] = st.radio("**:blue[Embeddings]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_embedding_provider'] = st.radio("**:blue[Embeddings]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
             with col_vectorstore:
                 st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("ChromaDB", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
         else:
@@ -338,11 +337,11 @@ def main():
         
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
-            if st.session_state.get('selected_embeddings', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
+            if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
                 os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
                 os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
         
-            if st.session_state.get('selected_embeddings', "Ollama") == "Ollama" or st.session_state.get('selected_ai', "Ollama") == "Ollama":
+            if st.session_state.get('selected_embedding_provider', "Ollama") == "Ollama" or st.session_state.get('selected_ai', "Ollama") == "Ollama":
                 os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
         
             if st.session_state.get('vectorstore_type', 'ChromaDB') == "ChromaDB":
@@ -357,12 +356,40 @@ def main():
                 os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
                 os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
 
+
+        ### Embeddings 모델 선택/설정
+        if st.session_state['selected_ai'] == "OpenAI":
+            # text-embedding-3-small: dimension=1536 (Increased performance over 2nd generation ada embedding model)
+            # text-embedding-3-large: dimension=3072 (Most capable embedding model for both english and non-english tasks)
+            # text-embedding-ada-002: dimension=1536 (Most capable 2nd generation embedding model, replacing 16 first generation models)
+            st.session_state['selected_embedding_model'] = st.selectbox("Embeddings Model", ["text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"], index=0,  disabled=st.session_state['is_analyzed'])
+        else:
+            # mxbai-embed-large: dimension=1024 (State-of-the-art large embedding model from mixedbread.ai) ("num_ctx": 512)
+            # nomic-embed-text: dimension=768 (A high-performing open embedding model with a large token context window.) ("num_ctx": 8192)
+            # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
+            st.session_state['selected_embedding_model'] = st.selectbox("Embeddings Model", ["all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large"], index=0,  disabled=st.session_state['is_analyzed'])
+        embedding_dimensions = {
+            "text-embedding-3-small": 1536,
+            "text-embedding-3-large": 3072,
+            "text-embedding-ada-002": 1536,
+            "all-minilm:22m": 384,
+            "all-minilm:33m": 384,
+            "nomic-embed-text": 768,
+            "mxbai-embed-large": 1024,
+        }
+        selected_model = st.session_state.get('selected_embedding_model', None)
+        if selected_model in embedding_dimensions:
+            st.session_state['selected_embedding_dimension'] = embedding_dimensions[selected_model]
+        else:
+            st.error("[ERROR] Unsupported embedding model")
+            st.stop()
+
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
         with col_ai_llm:
             if st.session_state['selected_ai'] == "OpenAI":
                 st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4,  disabled=st.session_state['is_analyzed'])
             else:
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=0, disabled=st.session_state['is_analyzed'])
         with col_ai_temperature:
             # st.session_state['temperature'] = st.text_input("LLM Temperature (0.0 ~ 1.0)", value=st.session_state['temperature'])
             st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05, disabled=st.session_state['is_analyzed'])
@@ -399,7 +426,7 @@ def main():
                     st.session_state['rag_lambda_mult'] = st.number_input("Lambda Mult", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
-            if st.session_state.get('selected_embeddings', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
+            if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
                 if not os.environ["OPENAI_API_KEY"]:
                     st.error("Please enter the OpenAI API Key.")
                     st.stop()
@@ -417,18 +444,16 @@ def main():
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             # Embedding 선택 및 초기화
-            if st.session_state['selected_embeddings'] == "OpenAI":
-                st.session_state['embeddings'] = OpenAIEmbeddings(
+            if st.session_state['selected_embedding_provider'] == "OpenAI":
+                st.session_state['embeddings_instance'] = OpenAIEmbeddings(
                     base_url=os.environ["OPENAI_BASE_URL"],
-                    model="text-embedding-3-large" # dimension = 3072
+                    model=st.session_state.get('selected_embedding_model', None)
                 )
-                st.session_state['vectorstore_dimension'] = 3072
             else:
-                st.session_state['embeddings'] = OllamaEmbeddings(
+                st.session_state['embeddings_instance'] = OllamaEmbeddings(
                     base_url=os.environ["OLLAMA_BASE_URL"],
-                    model="mxbai-embed-large",  # dimension = 1024
+                    model=st.session_state.get('selected_embedding_model', None)
                 )
-                st.session_state['vectorstore_dimension'] = 1024
 
         # AI 모델 선택 및 초기화
         if st.session_state['selected_ai'] == "OpenAI":
@@ -557,7 +582,7 @@ def main():
                         if (pinecone_index_name not in pc.list_indexes().names()):
                             pc.create_index(
                                 name=pinecone_index_name,
-                                dimension=st.session_state['vectorstore_dimension'],
+                                dimension=st.session_state.get('selected_embedding_dimension', None),
                                 metric=st.session_state['pinecone_metric'],
                                 spec=ServerlessSpec(
                                     cloud='aws',
@@ -568,7 +593,7 @@ def main():
                         # Pinecone Embedding 처리
                         vectorstore = PineconeVectorStore.from_documents(
                             st.session_state.get('documents_chunks', []),
-                            st.session_state['embeddings'],
+                            st.session_state['embeddings_instance'],
                             index_name=pinecone_index_name
                         )
                     else:
@@ -579,7 +604,7 @@ def main():
                         
                         vectorstore = Chroma.from_documents(
                             st.session_state.get('documents_chunks', []),
-                            st.session_state['embeddings'],
+                            st.session_state['embeddings_instance'],
                             persist_directory=f"{chromadb_dir_path}",
                         )
                     
@@ -649,7 +674,7 @@ def main():
                 f"""
                 <div style="border: 1px solid #ddd; padding: 10px; background-color: #e7f3fc; 
                             font-family: Arial, sans-serif; border-radius: 5px; width: 100%;">
-                    <p><b>ℹ️ Google Search Results (Chunks: {len(st.session_state.get('documents_chunks', []))})</b></p>
+                    <p><b>ℹ️ Google Search Results</b></p>
                     <p style="white-space: pre-line;">{multiline_text}</p>
                 </div>
                 """,
@@ -739,12 +764,12 @@ def main():
                     else:
                         rag_score = None
                     
-                    #st.write(f"Embeddings: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['rag_history_rag_contexts'][-1])} / Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
+                    #st.write(f"Embeddings: {st.session_state.get('selected_embedding_provider', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['rag_history_rag_contexts'][-1])} / Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
                     #st.write(f"RAG TOP-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
 
                     # st.markdown(f"""
                     #     <p style='color: #2E9AFE;'>
-                    #         - <b>Embeddings</b>: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')}<br>
+                    #         - <b>Embeddings</b>: {st.session_state.get('selected_embedding_provider', 'Unknown Embeddings')}<br>
                     #         - <b>AI</b>: {st.session_state.get('selected_ai', 'Unknown AI')}<br>
                     #         - <b>LLM</b>: {llm_model_name}<br>
                     #         - <b>Temperature</b>: {temperature}<br>
@@ -762,17 +787,22 @@ def main():
                         st.markdown(
                             f"""
                             <div style="color: #2E9AFE; border: 1px solid #ddd; padding: 5px; background-color: #f9f9f9; border-radius: 5px; width: 100%;">
-                                - <b>AI</b>: {st.session_state.get('selected_ai', 'Unknown AI')}<br>
-                                - <b>LLM</b>: {llm_model_name}<br>
-                                - <b>Embeddings</b>: {st.session_state.get('selected_embeddings', 'Unknown Embeddings')}<br>
-                                - <b>Temperature</b>: {temperature}<br>
-                                - <b>RAG Contexts</b>: {len(st.session_state['rag_history_rag_contexts'][-1])}<br>
-                                - <b>Pinecone Metric</b>: {st.session_state.get('pinecone_metric', None)}<br>
-                                - <b>RAG TOP-K</b>: {rag_top_k}<br>
-                                - <b>RAG Search Type</b>: {rag_search_type}<br>
-                                - <b>RAG Score</b>: {rag_score}<br>
-                                - <b>RAG Fetch-K</b>: {rag_fetch_k}<br>
-                                - <b>RAG Lambda Mult</b>: {rag_lambda_mult}<br>
+                                - <b>Embedding Type</b>: <font color=black>{st.session_state.get('selected_embedding_provider', 'Unknown Embedding Type')}</font><br>
+                                - <b>Embedding Model</b>: <font color=black>{st.session_state.get('selected_embedding_model', 'Unknown Embedding Model')}</font><br>
+                                - <b>Embedding Dimension</b>: <font color=black>{st.session_state.get('selected_embedding_dimension', 'Unknown Embedding Dimension')}</font><br>
+                                - <b>Chunk-Count</b>: <font color=black>{len(st.session_state.get('documents_chunks', []))}</font><br>
+                                - <b>Chunk-Size</b>: <font color=black>{st.session_state.get('chunk_size', None)}</font><br>
+                                - <b>Chunk-Overlap</b>: <font color=black>{st.session_state.get('chunk_overlap', None)}</font><br>
+                                - <b>AI</b>: <font color=black>{st.session_state.get('selected_ai', 'Unknown AI')}</font><br>
+                                - <b>LLM</b>: <font color=black>{llm_model_name}</font><br>
+                                - <b>Temperature</b>: <font color=black>{temperature}</font><br>
+                                - <b>RAG Contexts</b>: <font color=black>{len(st.session_state['rag_history_rag_contexts'][-1])}</font><br>
+                                - <b>Pinecone Metric</b>: <font color=black>{st.session_state.get('pinecone_metric', None)}</font><br>
+                                - <b>RAG TOP-K</b>: <font color=black>{rag_top_k}</font><br>
+                                - <b>RAG Search Type</b>: <font color=black>{rag_search_type}</font><br>
+                                - <b>RAG Score</b>: <font color=black>{rag_score}</font><br>
+                                - <b>RAG Fetch-K</b>: <font color=black>{rag_fetch_k}</font><br>
+                                - <b>RAG Lambda Mult</b>: <font color=black>{rag_lambda_mult}</font><br>
                             </div>
                             """,
                             unsafe_allow_html=True,
