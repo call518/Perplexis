@@ -280,7 +280,10 @@ def main():
             st.session_state['temperature'] = 0.80
             st.session_state['llm_top_p'] = 0.70
 
-        st.session_state['ai_role'] = st.selectbox("Role of AI", get_sysetm_prompt_for_role(only_key=True), index=0)
+        if st.session_state.get('selected_mode', "Chat") == "RAG":
+            st.session_state['ai_role'] = st.selectbox("Role of AI", get_sysetm_prompt_for_role(only_key=True), index=2)
+        else:
+            st.session_state['ai_role'] = st.selectbox("Role of AI", get_sysetm_prompt_for_role(only_key=True), index=0)
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             # Contextualize question (질답 히스토리를 이용해, 주어진 질문을 문맥상 정확하고 독립적인 질문으로 보완/재구성 처리해서 반환)
