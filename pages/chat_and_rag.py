@@ -880,7 +880,7 @@ def main():
                                 - <b>Chunk-Count</b>: <font color=black>{len(st.session_state.get('documents_chunks', []))}</font><br>
                                 - <b>Chunk-Size</b>: <font color=black>{st.session_state.get('chunk_size', None)}</font><br>
                                 - <b>Chunk-Overlap</b>: <font color=black>{st.session_state.get('chunk_overlap', None)}</font><br>
-                                - <b>AI</b>: <font color=black>{st.session_state.get('selected_ai', 'Unknown AI')}</font><br>
+                                - <b>AI</b>: <font color=red>{st.session_state.get('selected_ai', 'Unknown AI')}</font><br>
                                 - <b>LLM Model</b>: <font color=black>{llm_model_name}</font><br>
                                 - <b>LLM Args(Common) temperature</b>: <font color=black>{temperature}</font><br>
                                 - <b>LLM Args(Common) top_p</b>: <font color=black>{st.session_state.get('llm_top_p', None)}</font><br>
