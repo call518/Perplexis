@@ -592,6 +592,22 @@ def main():
                     else:
                         splits = text_splitter.split_documents(docs_contents)
 
+                    ### splits 의 각 split의 page_content에서 빈 줄 제거
+                    # splits = [Document(page_content="\n".join([line for line in split.page_content.split("\n") if line.strip()]), metadata=split.metadata) for split in splits]
+                    # 위 코드를 가독성을 위해 아래와 같이 수정
+                    cleaned_splits = []
+                    for split in splits:
+                        lines = split.page_content.split("\n")
+                        cleaned_lines = [line for line in lines if line.strip()]
+                        cleaned_content = "\n".join(cleaned_lines)
+                        cleaned_split = Document(page_content=cleaned_content, metadata=split.metadata)
+                        cleaned_splits.append(cleaned_split)
+                    splits = cleaned_splits
+
+                    ### Debugging Print                    
+                    for idx, split in enumerate(splits):
+                        print(f"[DEBUG] Split {idx + 1}: {split.page_content[:200]}...")  # Print first 200 characters of each split
+
                     # 모든 청크 벡터화 및 메타데이터 준비 (for Pinecone에 임베딩)
                     if st.session_state['document_type'] == "Google Search":
                         for i, doc in enumerate(splits):
@@ -609,7 +625,7 @@ def main():
                             st.session_state.get('documents_chunks', []).append(document)
 
                     ### Debugging Print
-                    print(f"[DEBUG] Chunks ---------------> {len(st.session_state.get('documents_chunks', []))}")
+                    print(f"[DEBUG] (chunks) {len(st.session_state.get('documents_chunks', []))}")
                     
                     st.write(f"Documents Chunks: {len(st.session_state.get('documents_chunks', []))}")
 
@@ -630,7 +646,7 @@ def main():
                         # pinecone_index_name = pinecone_index_name[:40] + "--end"
                         # pinecone_index_name = pinecone_index_name.lower()
                         
-                        print(f"[DEBUG] pinecone_index_name ---------------> {pinecone_index_name}")
+                        print(f"[DEBUG] (pinecone_index_name) {pinecone_index_name}")
 
                         # Pinecone Index 초기화 (삭제)
                         if st.session_state.get('pinecone_index_reset', False):
@@ -927,7 +943,7 @@ def main():
             if submit_button and user_input:
                 with st.spinner('Thinking...'):
                     st.session_state['chat_response'] = st.session_state['chat_conversation'].invoke({"question": user_input})
-                    print(f"[DEBUG] chat_response ------------> {st.session_state['chat_response']}")
+                    # print(f"[DEBUG] (chat_response) {st.session_state['chat_response']}")
 
         ### container_history 처리
         if st.session_state.get('chat_memory', None) is not None:
