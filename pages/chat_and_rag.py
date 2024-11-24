@@ -604,9 +604,9 @@ def main():
                         cleaned_splits.append(cleaned_split)
                     splits = cleaned_splits
 
-                    ### Debugging Print                    
-                    for idx, split in enumerate(splits):
-                        print(f"[DEBUG] Split {idx + 1}: {split.page_content[:200]}...")  # Print first 200 characters of each split
+                    ### 디버깅용 출력
+                    # for idx, split in enumerate(splits):
+                    #     print(f"[DEBUG] Split {idx + 1}: {split.page_content[:200]}...")  # Print first 200 characters of each split
 
                     # 모든 청크 벡터화 및 메타데이터 준비 (for Pinecone에 임베딩)
                     if st.session_state['document_type'] == "Google Search":
