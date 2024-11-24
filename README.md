@@ -66,7 +66,7 @@ $ ollama pull mxbai-embed-large
 You can be entered directly in the Web-UI, or pre-configured as shown below.
 
 ```bash
-$ cp -a .streamlit.template .streamlit
+$ cp -a .streamlit.template/secrets.toml .streamlit/
 
 $ vi .streamlit/secrets.toml
 ### Update each API keys and BASE URLs with your own value
