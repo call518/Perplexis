@@ -1,6 +1,5 @@
 .env
 .streamlit
-.streamlit/secrets.toml
 .devcontainer
 chromadb
 __pycache__
