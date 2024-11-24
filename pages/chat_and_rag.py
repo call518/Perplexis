@@ -127,10 +127,10 @@ default_values = {
     'embedding_instance': None,
     'llm': None,
     'llm_top_p': 0.80,
-    'llm_openai_presence_penalty': 0.00,
-    'llm_openai_frequency_penalty': 1.00,
+    'llm_openai_presence_penalty': 0.50,
+    'llm_openai_frequency_penalty': 0.50,
     'llm_openai_max_tokens': 8192,
-    'llm_ollama_repeat_penalty': 1.00,
+    'llm_ollama_repeat_penalty': 0.50,
     'llm_ollama_num_ctx': 8192,
     'llm_ollama_num_predict': -1,
     'selected_embedding_provider': None,
@@ -456,16 +456,16 @@ def main():
             st.session_state['llm_top_p'] = st.number_input("top_p", min_value=0.00, max_value=1.00, value=st.session_state.get('llm_top_p', 0.80), step=0.05, disabled=st.session_state['is_analyzed'])
         with col_repeat_penalty:
             if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
-                st.session_state['llm_openai_frequency_penalty'] = st.number_input("frequency_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_frequency_penalty', 1.00), step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_openai_frequency_penalty'] = st.number_input("frequency_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_frequency_penalty', 0.50), step=0.05, disabled=st.session_state['is_analyzed'])
             if st.session_state.get('selected_ai', "Ollama") == "Ollama":
-                st.session_state['llm_ollama_repeat_penalty'] = st.number_input("repeat_penalty", min_value=0.00, value=st.session_state.get('llm_ollama_repeat_penalty', 1.10), step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_repeat_penalty'] = st.number_input("repeat_penalty", min_value=0.00, value=st.session_state.get('llm_ollama_repeat_penalty', 0.50), step=0.05, disabled=st.session_state['is_analyzed'])
 
         if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
             col_llm_openai_max_tokens, col_llm_openai_presence_penalty = st.sidebar.columns(2)
             with col_llm_openai_max_tokens:
                 st.session_state['llm_openai_max_tokens'] = st.number_input("max_tokens", min_value=2048, max_value=32768, value=st.session_state.get('llm_openai_max_tokens', 8192), disabled=st.session_state['is_analyzed'])
             with col_llm_openai_presence_penalty:
-                st.session_state['llm_openai_presence_penalty'] = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_presence_penalty', 1.00), step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_openai_presence_penalty'] = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_presence_penalty', 0.50), step=0.05, disabled=st.session_state['is_analyzed'])
         if st.session_state.get('selected_ai', "Ollama") == "Ollama":
             col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
             with col_llm_ollama_num_ctx:
