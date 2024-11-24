@@ -139,7 +139,7 @@ default_values = {
     'vectorstore_type': "pinecone",
     'selected_ai': None,
     'selected_llm': None,
-    'temperature': 0.20,
+    'temperature': 0.00,
     'chunk_size': None,
     'chunk_overlap': None,
     'retriever': None,
@@ -271,6 +271,12 @@ def main():
         st.title("Parameters")
 
         st.session_state['selected_mode'] = st.radio("**:red[Mode]**", ("RAG", "Chat"), index=0, horizontal=True, disabled=st.session_state['is_analyzed'])
+        
+        if st.session_state.get('selected_mode', "Chat") == "RAG":
+            st.session_state['temperature'] = 0.00
+            
+        if st.session_state.get('selected_mode', "Chat") == "Chat":
+            st.session_state['temperature'] = 0.50
 
         st.session_state['ai_role'] = st.selectbox("Role of AI", get_sysetm_prompt_for_role(only_key=True), index=0)
 
@@ -452,13 +458,13 @@ def main():
         if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
             col_llm_openai_max_tokens, col_llm_openai_presence_penalty = st.sidebar.columns(2)
             with col_llm_openai_max_tokens:
-                st.session_state['llm_openai_max_tokens'] = st.number_input("max_tokens", min_value=2048, value=st.session_state.get('llm_openai_max_tokens', 2048), disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_openai_max_tokens'] = st.number_input("max_tokens", min_value=2048, max_value=32768, value=st.session_state.get('llm_openai_max_tokens', 2048), disabled=st.session_state['is_analyzed'])
             with col_llm_openai_presence_penalty:
                 st.session_state['llm_openai_presence_penalty'] = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_presence_penalty', 1.00), step=0.05, disabled=st.session_state['is_analyzed'])
         if st.session_state.get('selected_ai', "Ollama") == "Ollama":
             col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
             with col_llm_ollama_num_ctx:
-                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=2048, value=st.session_state.get('llm_ollama_num_ctx', 2048), disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=2048, max_value=32768, value=st.session_state.get('llm_ollama_num_ctx', 2048), disabled=st.session_state['is_analyzed'])
             with col_llm_ollama_num_predict:
                 st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=st.session_state.get('llm_ollama_num_predict', -1), disabled=st.session_state['is_analyzed'])
 
@@ -500,7 +506,7 @@ def main():
             st.session_state['llm'] = ChatOpenAI(
                 base_url = os.environ["OPENAI_BASE_URL"],
                 model = st.session_state.get('selected_llm', "gpt-3.5-turbo"),
-                temperature = st.session_state.get('temperature', 0.20),
+                temperature = st.session_state.get('temperature', 0.00),
                 cache = False,
                 streaming = False,
                 presence_penalty = st.session_state.get('llm_openai_presence_penalty', 1.00),
@@ -515,7 +521,7 @@ def main():
             st.session_state['llm'] = OllamaLLM(
                 base_url = os.environ["OLLAMA_BASE_URL"],
                 model = st.session_state.get('selected_llm', "gemma2:9b"),
-                temperature = st.session_state.get('temperature', 0.20),
+                temperature = st.session_state.get('temperature', 0.00),
                 cache = False,
                 num_ctx = st.session_state.get('llm_ollama_num_ctx', 2048),
                 num_predict = st.session_state.get('llm_ollama_num_predict', -1),
