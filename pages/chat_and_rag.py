@@ -377,7 +377,7 @@ def main():
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             ### Embeddings 모델 선택/설정
-            if st.session_state['selected_ai'] == "OpenAI":
+            if st.session_state['selected_embedding_provider'] == "OpenAI":
                 # text-embedding-3-small: dimension=1536 (Increased performance over 2nd generation ada embedding model)
                 # text-embedding-3-large: dimension=3072 (Most capable embedding model for both english and non-english tasks)
                 # text-embedding-ada-002: dimension=1536 (Most capable 2nd generation embedding model, replacing 16 first generation models)
