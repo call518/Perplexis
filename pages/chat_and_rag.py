@@ -12,6 +12,8 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 from modules.nav import Navbar
 from modules.common_functions import get_sysetm_prompt_for_role
 from modules.common_functions import get_country_name_by_code
+from modules.common_functions import get_model_max_tokens
+from modules.common_functions import get_model_num_ctx
 
 import streamlit as st
 # from streamlit_chat import message
@@ -129,9 +131,11 @@ default_values = {
     'llm_top_p': 0.80,
     'llm_openai_presence_penalty': 0.00,
     'llm_openai_frequency_penalty': 1.00,
-    'llm_openai_max_tokens': 8192,
+    'llm_openai_max_tokens': 1024,
+    'llm_openai_max_tokens_fix': 1024,
     'llm_ollama_repeat_penalty': 1.00,
-    'llm_ollama_num_ctx': 8192,
+    'llm_ollama_num_ctx': 1024,
+    'llm_ollama_num_ctx_fix': 1024,
     'llm_ollama_num_predict': -1,
     'selected_embedding_provider': None,
     'selected_embedding_model': None,
@@ -273,8 +277,8 @@ def main():
         st.session_state['selected_mode'] = st.radio("**:red[Mode]**", ("RAG", "Chat"), index=0, horizontal=True, disabled=st.session_state['is_analyzed'])
         
         if st.session_state.get('selected_mode', "Chat") == "RAG":
-            st.session_state['temperature'] = 0.00
-            st.session_state['llm_top_p'] = 0.20
+            st.session_state['temperature'] = 0.10
+            st.session_state['llm_top_p'] = 0.50
             
         if st.session_state.get('selected_mode', "Chat") == "Chat":
             st.session_state['temperature'] = 0.80
@@ -463,13 +467,13 @@ def main():
         if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
             col_llm_openai_max_tokens, col_llm_openai_presence_penalty = st.sidebar.columns(2)
             with col_llm_openai_max_tokens:
-                st.session_state['llm_openai_max_tokens'] = st.number_input("max_tokens", min_value=2048, max_value=32768, value=st.session_state.get('llm_openai_max_tokens', 8192), disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_openai_max_tokens'] = st.number_input("max_tokens", min_value=1024, max_value=get_model_max_tokens(st.session_state['selected_llm']), value=get_model_max_tokens(st.session_state['selected_llm']), disabled=st.session_state['is_analyzed'])
             with col_llm_openai_presence_penalty:
                 st.session_state['llm_openai_presence_penalty'] = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_presence_penalty', 1.00), step=0.05, disabled=st.session_state['is_analyzed'])
         if st.session_state.get('selected_ai', "Ollama") == "Ollama":
             col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
             with col_llm_ollama_num_ctx:
-                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=2048, max_value=32768, value=st.session_state.get('llm_ollama_num_ctx', 8192), disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=1024, max_value=get_model_num_ctx(st.session_state['selected_llm']), value=get_model_num_ctx(st.session_state['selected_llm']), disabled=st.session_state['is_analyzed'])
             with col_llm_ollama_num_predict:
                 st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=st.session_state.get('llm_ollama_num_predict', -1), disabled=st.session_state['is_analyzed'])
 

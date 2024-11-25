@@ -1,3 +1,26 @@
+def get_model_max_tokens(model_name):
+    max_tokens = {
+        "gpt-4o-mini": 16384,
+        "gpt-4o": 16384,
+        "gpt-4-turbo": 4096,
+        "gpt-4": 8192,
+        "gpt-3.5-turbo": 4096,
+    }
+    return max_tokens.get(model_name, 1024)
+
+def get_model_num_ctx(model_name):
+    num_ctx = {
+        "gemma2:2b": 2048,
+        "gemma2:9b": 8192,
+        "gemma2:27b": 16384,
+        "mistral:7b": 8192,
+        "llama3.2:1b": 2048,
+        "llama3.2:3b": 2048,
+        "codegemma:2b": 4096,
+        "codegemma:7b": 8192,
+    }
+    return num_ctx.get(model_name, 1024)
+
 def get_sysetm_prompt_for_role(role="Basic chatbot", only_key=False):
     ### (일부 참고 출처) https://weam.ai/blog/prompts/best-system-prompts-for-chatgpt/
     prompts = {
