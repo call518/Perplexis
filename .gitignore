@@ -1,0 +1,5 @@
+.env
+.streamlit
+chromadb
+__pycache__
+*.ipynb
