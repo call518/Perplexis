@@ -21,6 +21,23 @@ def get_model_num_ctx(model_name):
     }
     return num_ctx.get(model_name, 1024)
 
+def get_model_embedding_dimensions(model_name):
+    embedding_dimensions = {
+        "text-embedding-3-small": 1536,
+        "text-embedding-3-large": 3072,
+        "text-embedding-ada-002": 1536,
+        "all-minilm:22m": 384,
+        "all-minilm:33m": 384,
+        "nomic-embed-text": 768,
+        "mxbai-embed-large": 1024,
+        # "snowflake-arctic-embed:22m": 384,
+        # "snowflake-arctic-embed:33m": 384,
+        # "snowflake-arctic-embed:110m": 768,
+        # "snowflake-arctic-embed:137m": 768,
+        # "snowflake-arctic-embed:335m": 1024,
+    }
+    return embedding_dimensions.get(model_name)
+
 def get_sysetm_prompt_for_role(role="Basic chatbot", only_key=False):
     ### (일부 참고 출처) https://weam.ai/blog/prompts/best-system-prompts-for-chatgpt/
     prompts = {
