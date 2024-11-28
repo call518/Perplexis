@@ -1,4 +1,4 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb pysqlite3-binary 
+# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval googlesearch-python chromadb pysqlite3-binary pypdf pymupdf rapidocr-onnxruntime langchain-experimental
 # pip list --format=freeze > requirements.txt (또는 pip freeze > requirements.txt)
 
 ### (임시) pysqlite3 설정 - sqlite3 모듈을 pysqlite3로 대체
@@ -54,6 +54,7 @@ from langchain_community.vectorstores import Chroma
 import chromadb
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_community.document_loaders import TextLoader
 from googlesearch import search
 
@@ -267,8 +268,10 @@ def read_txt(file):
 
 ### 파일 업로드 후, 업로드된 파일 프로세싱
 def read_pdf(file):
-    # upload_dir = f"./uploads/{st.session_state['session_id']}"
-    loader = PyPDFLoader(f"{upload_dir}/{file}")
+    ### pypdf 모듈을 이용한 PDF 파일 로드
+    # loader = PyPDFLoader(f"{upload_dir}/{file}")
+    ### pymupdf 모듈을 이용한 PDF 파일 로드
+    loader = PyMuPDFLoader(f"{upload_dir}/{file}", extract_images=True)
     docs = loader.load()
     # shutil.rmtree(upload_dir)
     return docs
@@ -396,10 +399,11 @@ def main():
                 # mxbai-embed-large: dimension=1024 (State-of-the-art large embedding model from mixedbread.ai) ("num_ctx": 512)
                 # nomic-embed-text: dimension=768 (A high-performing open embedding model with a large token context window.) ("num_ctx": 8192)
                 # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
-                st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "llama3:8b"], index=3,  disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "llama3:8b"], index=0,  disabled=st.session_state['is_analyzed'])
 
             st.session_state['selected_embedding_dimension'] = get_max_value_of_model_embedding_dimensions(st.session_state.get('selected_embedding_model', None))
             print(f"[DEBUG] (selected_embedding_model) {st.session_state.get('selected_embedding_model', None)}")
+            print(f"[DEBUG] (selected_embedding_dimension) {st.session_state.get('selected_embedding_dimension', None)}")
             if st.session_state['selected_embedding_dimension'] is None:
                 st.error("[ERROR] Unsupported embedding model")
                 st.stop()

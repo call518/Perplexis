@@ -55,6 +55,7 @@ $ ollama pull llama3.2:3b
 $ ollama pull codegemma:2b
 $ ollama pull codegemma:7b
 
+$ ollama pull bge-m3:567m
 $ ollama pull all-minilm:22m
 $ ollama pull all-minilm:33m
 $ ollama pull nomic-embed-text

@@ -28,6 +28,7 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         "text-embedding-3-large": 3072,
         "text-embedding-ada-002": 1536,
         ### Olllama
+        "bge-m3:567m": 1024,
         "all-minilm:22m": 384,
         "all-minilm:33m": 384,
         "nomic-embed-text": 768,
