@@ -32,8 +32,8 @@ Enjoy your time with the RAG & Chat Application!
 
 # Tested Environments
 
-- `Python` : 3.10.14
-- `ollama` : 0.4.1
+- `Python` : >= 3.9
+- `ollama` : >= 0.4
 
 # Configure & Run
 
@@ -59,6 +59,8 @@ $ ollama pull all-minilm:22m
 $ ollama pull all-minilm:33m
 $ ollama pull nomic-embed-text
 $ ollama pull mxbai-embed-large
+$ ollama pull mxbai-embed-large
+$ ollama pull llama3:8b
 ```
 
 ## Setup Default API Keys (Optional)

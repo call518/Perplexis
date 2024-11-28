@@ -1,6 +1,5 @@
 # pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval pypdf googlesearch-python chromadb pysqlite3-binary 
-# pip freeze > requirements.txt
-# pip list --format=freeze > requirements.txt
+# pip list --format=freeze > requirements.txt (또는 pip freeze > requirements.txt)
 
 ### (임시) pysqlite3 설정 - sqlite3 모듈을 pysqlite3로 대체
 ### pip install pysqlite3-binary 필요
@@ -10,10 +9,11 @@ import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from modules.nav import Navbar
-from modules.common_functions import get_sysetm_prompt_for_role
+from modules.common_functions import get_ai_role_and_sysetm_prompt
 from modules.common_functions import get_country_name_by_code
-from modules.common_functions import get_model_max_tokens
-from modules.common_functions import get_model_num_ctx
+from modules.common_functions import get_max_value_of_model_max_tokens
+from modules.common_functions import get_max_value_of_model_num_ctx
+from modules.common_functions import get_max_value_of_model_embedding_dimensions
 
 import streamlit as st
 # from streamlit_chat import message
@@ -31,7 +31,12 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_ollama import OllamaLLM, OllamaEmbeddings
+
+from langchain_ollama import OllamaLLM
+
+# from langchain_ollama import OllamaEmbeddings
+from langchain_community.embeddings import OllamaEmbeddings ### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
+
 from langchain.prompts import (
     ChatPromptTemplate,
     MessagesPlaceholder,
@@ -175,7 +180,8 @@ def init_session_state():
     for key, value in default_values.items():
         if key not in st.session_state:
             st.session_state[key] = value
-        print(f"[DEBUG] (session_state) {key} = {st.session_state.get(key, '')}")
+        if key not in ['store', 'documents_chunks']:
+            print(f"[DEBUG] (session_state) {key} = {st.session_state.get(key, 'Unknown')}")
     os.system('rm -rf ./uploads/*')
 
 init_session_state()
@@ -277,17 +283,17 @@ def main():
         st.session_state['selected_mode'] = st.radio("**:red[Mode]**", ("RAG", "Chat"), index=0, horizontal=True, disabled=st.session_state['is_analyzed'])
         
         if st.session_state.get('selected_mode', "Chat") == "RAG":
-            st.session_state['temperature'] = 0.10
-            st.session_state['llm_top_p'] = 0.50
+            st.session_state['temperature'] = 0.00
+            st.session_state['llm_top_p'] = 0.20
             
         if st.session_state.get('selected_mode', "Chat") == "Chat":
             st.session_state['temperature'] = 0.80
-            st.session_state['llm_top_p'] = 0.70
+            st.session_state['llm_top_p'] = 0.80
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
-            st.session_state['ai_role'] = st.selectbox("Role of AI", get_sysetm_prompt_for_role(only_key=True), index=2)
+            st.session_state['ai_role'] = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=2)
         else:
-            st.session_state['ai_role'] = st.selectbox("Role of AI", get_sysetm_prompt_for_role(only_key=True), index=0)
+            st.session_state['ai_role'] = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=0)
 
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             # Contextualize question (질답 히스토리를 이용해, 주어진 질문을 문맥상 정확하고 독립적인 질문으로 보완/재구성 처리해서 반환)
@@ -304,7 +310,7 @@ def main():
             )
 
             # QA 시스템 프롬프트 설정 (사용자 질문과, 벡터DB로부터 얻은 결과를 조합해 최종 답변을 작성하기 위한 행동 지침 및 질답 체인 생성)
-            system_prompt_content = get_sysetm_prompt_for_role(st.session_state['ai_role'])
+            system_prompt_content = get_ai_role_and_sysetm_prompt(st.session_state['ai_role'])
             system_prompt = (
                 # "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise."
                 # "당신은 모든 분야에서 전문가 입니다. 다음 검색된 컨텍스트 조각을 사용하여 질문자의 질문에 체계적인 답변을 작성하세요. 답을 모르면 모른다고 말하세요. 최소 50개의 문장을 사용하고 답변은 간결하면서도 최대한 상세한 정보를 포함해야 합니다. (답변은 한국어로 작성하세요.)"
@@ -390,26 +396,11 @@ def main():
                 # mxbai-embed-large: dimension=1024 (State-of-the-art large embedding model from mixedbread.ai) ("num_ctx": 512)
                 # nomic-embed-text: dimension=768 (A high-performing open embedding model with a large token context window.) ("num_ctx": 8192)
                 # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
-                st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large"], index=0,  disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "llama3:8b"], index=0,  disabled=st.session_state['is_analyzed'])
 
-            ### Embeddings 모델 차원 설정 (이유: Pinecone에서는 dimension 설정 필수)
-            embedding_dimensions = {
-                "text-embedding-3-small": 1536,
-                "text-embedding-3-large": 3072,
-                "text-embedding-ada-002": 1536,
-                "all-minilm:22m": 384,
-                "all-minilm:33m": 384,
-                "nomic-embed-text": 768,
-                "mxbai-embed-large": 1024,
-                # "snowflake-arctic-embed:22m": 384,
-                # "snowflake-arctic-embed:33m": 384,
-                # "snowflake-arctic-embed:110m": 768,
-                # "snowflake-arctic-embed:137m": 768,
-                # "snowflake-arctic-embed:335m": 1024,
-            }
-            if st.session_state.get('selected_embedding_model', None) in embedding_dimensions:
-                st.session_state['selected_embedding_dimension'] = embedding_dimensions[st.session_state.get('selected_embedding_model', None)]
-            else:
+            st.session_state['selected_embedding_dimension'] = get_max_value_of_model_embedding_dimensions(st.session_state.get('selected_embedding_model', None))
+            print(f"[DEBUG] (selected_embedding_model) {st.session_state.get('selected_embedding_model', None)}")
+            if st.session_state['selected_embedding_dimension'] is None:
                 st.error("[ERROR] Unsupported embedding model")
                 st.stop()
 
@@ -440,15 +431,15 @@ def main():
             if st.session_state['rag_search_type'] == "similarity_score_threshold":
                 col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
                 with col_rag_arg1:
-                    st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=10, value=3, step=1, disabled=st.session_state['is_analyzed'])        
+                    st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])        
                 with col_rag_arg2:
                     st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
             elif st.session_state['rag_search_type'] == "similarity":
-                st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=10, value=3, step=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])
             elif st.session_state['rag_search_type'] == "mmr":
                 col_rag_arg1, col_rag_arg2, col_rag_arg3 = st.sidebar.columns(3)
                 with col_rag_arg1:
-                    st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=10, value=3, step=1, disabled=st.session_state['is_analyzed'])
+                    st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])
                 with col_rag_arg2:
                     st.session_state['rag_fetch_k'] = st.number_input("MMR Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
                 with col_rag_arg3:
@@ -467,13 +458,13 @@ def main():
         if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
             col_llm_openai_max_tokens, col_llm_openai_presence_penalty = st.sidebar.columns(2)
             with col_llm_openai_max_tokens:
-                st.session_state['llm_openai_max_tokens'] = st.number_input("max_tokens", min_value=1024, max_value=get_model_max_tokens(st.session_state['selected_llm']), value=get_model_max_tokens(st.session_state['selected_llm']), disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_openai_max_tokens'] = st.number_input("max_tokens", min_value=1024, max_value=get_max_value_of_model_max_tokens(st.session_state['selected_llm']), value=get_max_value_of_model_max_tokens(st.session_state['selected_llm']), disabled=st.session_state['is_analyzed'])
             with col_llm_openai_presence_penalty:
                 st.session_state['llm_openai_presence_penalty'] = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_presence_penalty', 1.00), step=0.05, disabled=st.session_state['is_analyzed'])
         if st.session_state.get('selected_ai', "Ollama") == "Ollama":
             col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
             with col_llm_ollama_num_ctx:
-                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=1024, max_value=get_model_num_ctx(st.session_state['selected_llm']), value=get_model_num_ctx(st.session_state['selected_llm']), disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=1024, max_value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), disabled=st.session_state['is_analyzed'])
             with col_llm_ollama_num_predict:
                 st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=st.session_state.get('llm_ollama_num_predict', -1), disabled=st.session_state['is_analyzed'])
 
@@ -522,8 +513,8 @@ def main():
                 frequency_penalty = st.session_state.get('llm_openai_frequency_penalty', 1.00),
                 stream_usage = False,
                 n = 1,
-                top_p = st.session_state.get('llm_top_p', 0.80),
-                max_tokens = st.session_state.get('llm_openai_max_tokens', 2048),
+                top_p = st.session_state.get('llm_top_p', 0.50),
+                max_tokens = st.session_state.get('llm_openai_max_tokens', 1024),
                 verbose = True,
             )
         else:
@@ -532,7 +523,7 @@ def main():
                 model = st.session_state.get('selected_llm', "gemma2:9b"),
                 temperature = st.session_state.get('temperature', 0.00),
                 cache = False,
-                num_ctx = st.session_state.get('llm_ollama_num_ctx', 2048),
+                num_ctx = st.session_state.get('llm_ollama_num_ctx', 1024),
                 num_predict = st.session_state.get('llm_ollama_num_predict', -1),
                 # num_gpu = None,
                 # num_thread = None,
@@ -920,7 +911,7 @@ def main():
     if st.session_state.get('selected_mode', "Chat") == "Chat":
         # system_prompt_content = "You are a chatbot having a conversation with a human."
         # system_prompt_content = "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations."
-        st.session_state['system_prompt_content'] = get_sysetm_prompt_for_role(st.session_state.get('ai_role', "Basic chatbot"))
+        st.session_state['system_prompt_content'] = get_ai_role_and_sysetm_prompt(st.session_state.get('ai_role', "Basic chatbot"))
         
         system_prompt = st.session_state['system_prompt_content']
 

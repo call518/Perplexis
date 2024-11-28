@@ -1,4 +1,4 @@
-def get_model_max_tokens(model_name):
+def get_max_value_of_model_max_tokens(model_name):
     max_tokens = {
         "gpt-4o-mini": 16384,
         "gpt-4o": 16384,
@@ -8,7 +8,7 @@ def get_model_max_tokens(model_name):
     }
     return max_tokens.get(model_name, 1024)
 
-def get_model_num_ctx(model_name):
+def get_max_value_of_model_num_ctx(model_name):
     num_ctx = {
         "gemma2:2b": 2048,
         "gemma2:9b": 8192,
@@ -21,7 +21,22 @@ def get_model_num_ctx(model_name):
     }
     return num_ctx.get(model_name, 1024)
 
-def get_sysetm_prompt_for_role(role="Basic chatbot", only_key=False):
+def get_max_value_of_model_embedding_dimensions(model_name):
+    embedding_dimensions = {
+        ### OpenAI
+        "text-embedding-3-small": 1536,
+        "text-embedding-3-large": 3072,
+        "text-embedding-ada-002": 1536,
+        ### Olllama
+        "all-minilm:22m": 384,
+        "all-minilm:33m": 384,
+        "nomic-embed-text": 768,
+        "mxbai-embed-large": 1024, 
+        "llama3:8b": 4096, 
+    }
+    return embedding_dimensions.get(model_name)
+
+def get_ai_role_and_sysetm_prompt(role="Basic chatbot", only_key=False):
     ### (일부 참고 출처) https://weam.ai/blog/prompts/best-system-prompts-for-chatgpt/
     prompts = {
         "Basic chatbot": "You are a basic chatbot. Respond to user queries in a friendly and helpful manner, providing accurate information and assistance based on the user's input.",
