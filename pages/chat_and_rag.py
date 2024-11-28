@@ -432,15 +432,15 @@ def main():
             if st.session_state['rag_search_type'] == "similarity_score_threshold":
                 col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
                 with col_rag_arg1:
-                    st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])        
+                    st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])        
                 with col_rag_arg2:
                     st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
             elif st.session_state['rag_search_type'] == "similarity":
-                st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
             elif st.session_state['rag_search_type'] == "mmr":
                 col_rag_arg1, col_rag_arg2, col_rag_arg3 = st.sidebar.columns(3)
                 with col_rag_arg1:
-                    st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=5, step=1, disabled=st.session_state['is_analyzed'])
+                    st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
                 with col_rag_arg2:
                     st.session_state['rag_fetch_k'] = st.number_input("MMR Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
                 with col_rag_arg3:
