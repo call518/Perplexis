@@ -417,12 +417,13 @@ def main():
         if st.session_state.get('selected_mode', "Chat") == "RAG":
             col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
             with col_chunk_size:
-                st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=500, max_value=5000, value=2000, step=100, disabled=st.session_state['is_analyzed'])
+                st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=100, max_value=5000, value=1000, step=100, disabled=st.session_state['is_analyzed'])
             with col_chunk_overlap:
-                st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=100, max_value=1000, value=200, step=100, disabled=st.session_state['is_analyzed'])
-                if st.session_state['chunk_size'] <= st.session_state['chunk_overlap']:
+                st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=50, max_value=1000, value=50, step=100, disabled=st.session_state['is_analyzed'])
+                if not (st.session_state['chunk_size'] >= (st.session_state['chunk_overlap'] * 2)):
                     st.error("Chunk Overlap must be less than Chunk Size.")
                     st.stop()
+                
 
             ### (임시) similarity_score_threshold 모드에서, score_threshold 값 사용 안되는 버그 있음. (해결될 때 까지 노출 안함...)
             #st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=0, disabled=st.session_state['is_analyzed'])
