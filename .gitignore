@@ -1,5 +1,6 @@
 .env
-.streamlit
+#.streamlit
+.streamlit/secrets.toml
 chromadb
 __pycache__
 *.ipynb
