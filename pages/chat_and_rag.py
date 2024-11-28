@@ -553,7 +553,8 @@ def main():
                             st.stop()
                         # 문서 로드 및 분할
                         loader = WebBaseLoader(
-                            web_paths=(st.session_state['document_source'][0],),
+                            web_paths = (st.session_state['document_source'][0],),
+                            show_progress = True,
                         )
                         docs_contents = loader.load()
                     
@@ -585,9 +586,18 @@ def main():
                         for url in st.session_state['document_source']:
                             print(f"[DEBUG] (Loaded URL) {url}")
                             loader = WebBaseLoader(
-                                web_paths=(url,),
+                                web_paths = (url,),
+                                show_progress = True,
                             )
                             docs_contents.append(loader.load())
+
+                    ### 문서 내용 정리 (빈 줄 제거)
+                    if st.session_state['document_type'] == "Google Search":
+                        for i in range(len(docs_contents)):
+                            if docs_contents[i]:
+                                docs_contents[i][0].page_content = "\n".join([line for line in docs_contents[i][0].page_content.split("\n") if line.strip()])
+                    else:
+                        docs_contents[0].page_content = "\n".join([line for line in docs_contents[0].page_content.split("\n") if line.strip()])
 
                     # 문서 분할
                     text_splitter = RecursiveCharacterTextSplitter(chunk_size=st.session_state['chunk_size'], chunk_overlap=st.session_state['chunk_overlap'])
@@ -597,18 +607,18 @@ def main():
                             splits.extend(text_splitter.split_documents(doc_contents))
                     else:
                         splits = text_splitter.split_documents(docs_contents)
-
+                    
                     ### splits 의 각 split의 page_content에서 빈 줄 제거
                     # splits = [Document(page_content="\n".join([line for line in split.page_content.split("\n") if line.strip()]), metadata=split.metadata) for split in splits]
                     # 위 코드를 가독성을 위해 아래와 같이 수정
-                    cleaned_splits = []
-                    for split in splits:
-                        lines = split.page_content.split("\n")
-                        cleaned_lines = [line for line in lines if line.strip()]
-                        cleaned_content = "\n".join(cleaned_lines)
-                        cleaned_split = Document(page_content=cleaned_content, metadata=split.metadata)
-                        cleaned_splits.append(cleaned_split)
-                    splits = cleaned_splits
+                    # cleaned_splits = []
+                    # for split in splits:
+                    #     lines = split.page_content.split("\n")
+                    #     cleaned_lines = [line for line in lines if line.strip()]
+                    #     cleaned_content = "\n".join(cleaned_lines)
+                    #     cleaned_split = Document(page_content=cleaned_content, metadata=split.metadata)
+                    #     cleaned_splits.append(cleaned_split)
+                    # splits = cleaned_splits
 
                     ### 디버깅용 출력
                     # for idx, split in enumerate(splits):
