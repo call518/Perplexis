@@ -911,8 +911,8 @@ def main():
                                 - <b>LLM Args(Ollama) repeat_penalty</b>: <font color=black>{st.session_state.get('llm_ollama_repeat_penalty', None)}</font><br>
                                 - <b>LLM Args(Ollama) num_ctx</b>: <font color=black>{st.session_state.get('llm_ollama_fnum_ctx', None)}</font><br>
                                 - <b>LLM Args(Ollama) num_predict</b>: <font color=black>{st.session_state.get('llm_ollama_num_predict', None)}</font><br>
-                                - <b>RAG Contexts</b>: <font color=black>{len(st.session_state['rag_history_rag_contexts'][-1])}</font><br>
                                 - <b>Pinecone Metric</b>: <font color=black>{st.session_state.get('pinecone_metric', None)}</font><br>
+                                - <b>RAG Contexts</b>: <font color=black>{len(st.session_state['rag_history_rag_contexts'][-1])}</font><br>
                                 - <b>RAG Top-K</b>: <font color=black>{rag_top_k}</font><br>
                                 - <b>RAG Search Type</b>: <font color=black>{rag_search_type}</font><br>
                                 - <b>RAG Score</b>: <font color=black>{rag_score}</font><br>
