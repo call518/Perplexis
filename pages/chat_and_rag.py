@@ -25,6 +25,7 @@ import uuid
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.chat_message_histories import ChatMessageHistory
+import bs4
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -559,6 +560,11 @@ def main():
                         # 문서 로드 및 분할
                         loader = WebBaseLoader(
                             web_paths = (st.session_state['document_source'][0],),
+                            # bs_kwargs=dict(
+                            #     parse_only=bs4.SoupStrainer(
+                            #         class_=("post-content", "post-title", "post-header")
+                            #     )
+                            # ),
                             show_progress = True,
                         )
                         docs_contents = loader.load()
@@ -592,6 +598,11 @@ def main():
                             print(f"[DEBUG] (Loaded URL) {url}")
                             loader = WebBaseLoader(
                                 web_paths = (url,),
+                                # bs_kwargs=dict(
+                                #     parse_only=bs4.SoupStrainer(
+                                #         class_=("post-content", "post-title", "post-header")
+                                #     )
+                                # ),
                                 show_progress = True,
                             )
                             docs_contents.append(loader.load())
