@@ -14,7 +14,6 @@ from modules.common_functions import get_sysetm_prompt_for_role
 from modules.common_functions import get_country_name_by_code
 from modules.common_functions import get_model_max_tokens
 from modules.common_functions import get_model_num_ctx
-from modules.common_functions import get_model_embedding_dimensions
 
 import streamlit as st
 # from streamlit_chat import message
@@ -47,7 +46,6 @@ from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 from langchain_community.vectorstores import Chroma
-from langchain_core.vectorstores import InMemoryVectorStore
 import chromadb
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader
@@ -394,9 +392,24 @@ def main():
                 # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
                 st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large"], index=0,  disabled=st.session_state['is_analyzed'])
 
-            st.session_state['selected_embedding_dimension'] = get_model_embedding_dimensions(st.session_state.get('selected_embedding_model', None))
-            print(f"[DEBUG] (selected_embedding_model) {st.session_state.get('selected_embedding_model', None)}")
-            if st.session_state['selected_embedding_dimension'] is None:
+            ### Embeddings 모델 차원 설정 (이유: Pinecone에서는 dimension 설정 필수)
+            embedding_dimensions = {
+                "text-embedding-3-small": 1536,
+                "text-embedding-3-large": 3072,
+                "text-embedding-ada-002": 1536,
+                "all-minilm:22m": 384,
+                "all-minilm:33m": 384,
+                "nomic-embed-text": 768,
+                "mxbai-embed-large": 1024,
+                # "snowflake-arctic-embed:22m": 384,
+                # "snowflake-arctic-embed:33m": 384,
+                # "snowflake-arctic-embed:110m": 768,
+                # "snowflake-arctic-embed:137m": 768,
+                # "snowflake-arctic-embed:335m": 1024,
+            }
+            if st.session_state.get('selected_embedding_model', None) in embedding_dimensions:
+                st.session_state['selected_embedding_dimension'] = embedding_dimensions[st.session_state.get('selected_embedding_model', None)]
+            else:
                 st.error("[ERROR] Unsupported embedding model")
                 st.stop()
 
@@ -490,20 +503,12 @@ def main():
                     model = st.session_state.get('selected_embedding_model', None),
                     # dimensions = st.session_state['selected_embedding_dimension'],
                 )
-                print(f"[DEBUG] (OpenAIEmbeddings) selected_embedding_model: {st.session_state.get('selected_embedding_model', None)}")
-                print(f"[DEBUG] (OpenAIEmbeddings) selected_embedding_dimension: {st.session_state['selected_embedding_dimension']}")
             else:
-                # st.session_state['embedding_instance'] = OllamaEmbeddings(
-                #     base_url = os.environ["OLLAMA_BASE_URL"],
-                #     model = st.session_state.get('selected_embedding_model', None),
-                # )
                 st.session_state['embedding_instance'] = OllamaEmbeddings(
-                    base_url=os.environ["OLLAMA_BASE_URL"],
-                    model="mxbai-embed-large",  # dimension = 1024
+                    base_url = os.environ["OLLAMA_BASE_URL"],
+                    model = st.session_state.get('selected_embedding_model', None),
+                    # dimensions = st.session_state['selected_embedding_dimension'],
                 )
-                st.session_state['selected_embedding_dimension'] = 1024
-                print(f"[DEBUG] (OllamaEmbeddings) selected_embedding_model: {st.session_state.get('selected_embedding_model', None)}")
-                print(f"[DEBUG] (OpenAIEmbeddings) selected_embedding_dimension: {st.session_state['selected_embedding_dimension']}")
 
         # AI 모델 선택 및 초기화
         if st.session_state['selected_ai'] == "OpenAI":
@@ -667,7 +672,7 @@ def main():
                         if (pinecone_index_name not in pc.list_indexes().names()):
                             pc.create_index(
                                 name=pinecone_index_name,
-                                dimension=st.session_state['selected_embedding_dimension'],
+                                dimension=st.session_state.get('selected_embedding_dimension', None),
                                 metric=st.session_state['pinecone_metric'],
                                 spec=ServerlessSpec(
                                     cloud='aws',
@@ -677,20 +682,20 @@ def main():
 
                         # Pinecone Embedding 처리
                         vectorstore = PineconeVectorStore.from_documents(
-                            documents = st.session_state['documents_chunks'],
-                            embedding = st.session_state['embedding_instance'],
-                            index_name = pinecone_index_name,
+                            st.session_state.get('documents_chunks', []),
+                            st.session_state['embedding_instance'],
+                            index_name=pinecone_index_name
                         )
                     else:
                         chromadb_dir_path = f"{chromadb_root}/Perplexis-{st.session_state.get('selected_ai', 'unknown')}"
                         
-                        # if st.session_state.get('chromadb_root_reset', True):
-                        #     reset_chromadb(chromadb_dir_path)
+                        if st.session_state.get('chromadb_root_reset', True):
+                            reset_chromadb(chromadb_dir_path)
                         
                         vectorstore = Chroma.from_documents(
-                            documents = st.session_state['documents_chunks'],
-                            embedding = st.session_state['embedding_instance'],
-                            persist_directory = f"{chromadb_dir_path}",
+                            st.session_state.get('documents_chunks', []),
+                            st.session_state['embedding_instance'],
+                            persist_directory=f"{chromadb_dir_path}",
                         )
                     
                     # 주어진 문서 내용 처리(임베딩)
