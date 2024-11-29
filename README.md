@@ -64,7 +64,35 @@ $ ollama pull mxbai-embed-large
 $ ollama pull llama3:8b
 ```
 
-## Setup Default API Keys (Optional)
+# Install & Run
+
+- This project supports two methods of execution: running with Docker Compose and manual installation and execution.
+
+## (Type-1) Docker-Compose
+
+```bash
+$ docker-compose -p perplexis -f docker-compose.yml up
+[+] Running 3/3
+ ⠿ Network perplexis_default        Created                                                                                                                                          0.0s
+ ⠿ Container perplexis-pgvector-1   Created                                                                                                                                          0.1s
+ ⠿ Container perplexis-streamlit-1  Created                                                                                                                                          0.1s
+
+perplexis-pgvector-1   | 2024-11-29 15:30:20.827 UTC [1] LOG:  database system is ready to accept connections
+perplexis-streamlit-1  | Cloning into '/Perplexis'...
+perplexis-streamlit-1  | Already on 'main'
+perplexis-streamlit-1  | Your branch is up to date with 'origin/main'.
+perplexis-streamlit-1  | 
+perplexis-streamlit-1  |   You can now view your Streamlit app in your browser.
+perplexis-streamlit-1  | 
+perplexis-streamlit-1  |   Local URL: http://localhost:8501
+perplexis-streamlit-1  |   Network URL: http://172.20.0.3:8501
+perplexis-streamlit-1  |   External URL: http://x.x.x.x:8501
+perplexis-streamlit-1  |
+```
+
+## (Type-2) Manual
+
+### Setup Default API Keys (Optional)
 
 You can be entered directly in the Web-UI, or pre-configured as shown below.
 
@@ -86,13 +114,13 @@ PINECONE_API_KEY = "{your pinecone api key}"
 LANGCHAIN_API_KEY = "{your langchain api key}"
 ```
 
-## Setup PIP Modules
+### Setup PIP Modules
 
 ```bash
 $ pip install -r requirements.txt
 ```
 
-## Run App
+### Run App
 
 ```bash
 $ streamlit run perplexis.py
