@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   streamlit:
-    image: call518/perplexis:1.0.0
+    image: call518/perplexis:1.0.1
     environment:
       - PERPLEXIS_BRANCH=main
       - OLLAMA_BASE_URL=http://localhost:11434
@@ -16,7 +16,7 @@ services:
       - "18501:8501"
 
   pgvector:
-    image: call518/pgvector:pg16
+    image: call518/pgvector:pg16-1.0.0
     environment:
       - POSTGRES_USER=perplexis
       - POSTGRES_PASSWORD=changeme
