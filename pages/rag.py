@@ -1,7 +1,7 @@
 # pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval googlesearch-python chromadb pysqlite3-binary pypdf pymupdf rapidocr-onnxruntime langchain-experimental langchain_postgres psycopg_binary sqlalchemy
 # pip list --format=freeze > requirements.txt
 # sed -i '/^pip==/d' requirements.txt
-# docker run --name perplexis-pgsql -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -d -v pgvector-pgdata:/var/lib/postgresql/data call518/pgvector:pg16-1.0.0
+# (Manual Run PGVector Docker) docker run --name pgsql-perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -d -v pgvector-pgdata:/var/lib/postgresql/data call518/pgvector:pg16-1.0.0
 
 ### (임시) pysqlite3 설정 - sqlite3 모듈을 pysqlite3로 대체
 ### pip install pysqlite3-binary 필요
