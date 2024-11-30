@@ -14,12 +14,13 @@ services:
       - PGVECTOR_PORT = 5432
       - PGVECTOR_USER = perplexis
       - PGVECTOR_PASS = changeme
-    # volumes:
-    #   - .:/Perplexis
-    depends_on:
-      - pgvector
+    volumes:
+      - .:/Perplexis
+    network_mode: "service:pgvector"
     ports:
       - "8501:8501"
+    depends_on:
+      - pgvector
 
   pgvector:
     image: call518/pgvector:pg16-1.0.0
@@ -31,9 +32,6 @@ services:
       - pgvector-pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    depends_on:
-      - pgvector
-    network_mode: "service:pgvector"
 
 volumes:
   pgvector-pgdata:
