@@ -191,6 +191,7 @@ default_values = {
     'selected_embedding_model': None,
     'selected_embedding_dimension': None,
     'vectorstore_type': None,
+    'pgvector_connection': None,
     'selected_ai': None,
     'selected_llm': None,
     'temperature': 0.00,
@@ -426,6 +427,11 @@ def main():
 
         if st.session_state['vectorstore_type'] == "PGVector":
             st.session_state['pgvector_db_reset'] = st.checkbox("Reset PGVector", value=st.session_state.get('pgvector_db_reset', True), disabled=st.session_state['is_analyzed'])
+
+            if st.session_state['pgvector_connection'] is None:
+                st.session_state['pgvector_connection'] = f"postgresql+psycopg://{os.environ['PGVECTOR_USER']}:{os.environ['PGVECTOR_PASS']}@{os.environ['PGVECTOR_HOST']}:{os.environ['PGVECTOR_PORT']}/perplexis"
+                
+            st.session_state['pgvector_connection'] = st.text_input("PGVector Connection", value=st.session_state['pgvector_connection'], type="password",  disabled=st.session_state['is_analyzed'])
     
         if st.session_state['vectorstore_type'] == "Pinecone":
             os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
@@ -748,17 +754,16 @@ def main():
                     )
                     
                 if st.session_state['vectorstore_type'] == "PGVector":
-                    connection = f"postgresql+psycopg://{os.environ['PGVECTOR_USER']}:{os.environ['PGVECTOR_PASS']}@{os.environ['PGVECTOR_HOST']}:{os.environ['PGVECTOR_PORT']}/perplexis"
-                    collection_name = "rag_collection"
+                    # connection = f"postgresql+psycopg://{os.environ['PGVECTOR_USER']}:{os.environ['PGVECTOR_PASS']}@{os.environ['PGVECTOR_HOST']}:{os.environ['PGVECTOR_PORT']}/perplexis"
                     
                     if st.session_state.get('pgvector_db_reset', True):
-                        reset_pgvector(connection)
+                        reset_pgvector(st.session_state['pgvector_connection'])
                     
                     vectorstore = PGVector(
-                        connection = connection,
+                        connection = st.session_state['pgvector_connection'],
                         embeddings = st.session_state['embedding_instance'],
                         embedding_length = st.session_state.get('selected_embedding_dimension', None),
-                        collection_name = collection_name,
+                        collection_name = 'perplexis_rag',
                         distance_strategy = "cosine", ### Should be one of l2, cosine, inner.
                         use_jsonb=True,
                     )
