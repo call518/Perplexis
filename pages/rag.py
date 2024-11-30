@@ -292,7 +292,7 @@ def reset_pgvector(connection):
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    tables = [ "langchain_pg_collection", "langchain_pg_embedding" ]
+    tables = [ "langchain_pg_embedding", "langchain_pg_collection" ]
 
     from sqlalchemy import text
 
