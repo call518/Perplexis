@@ -1,4 +1,4 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval googlesearch-python chromadb pysqlite3-binary pypdf pymupdf rapidocr-onnxruntime langchain-experimental langchain_postgres
+# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval googlesearch-python chromadb pysqlite3-binary pypdf pymupdf rapidocr-onnxruntime langchain-experimental langchain_postgres psycopg_binary sqlalchemy
 # pip list --format=freeze > requirements.txt (또는 pip freeze > requirements.txt)
 # docker run --name perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -d call518/pgvector:pg16-1.0.0
 
