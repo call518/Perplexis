@@ -88,6 +88,9 @@ perplexis-streamlit-1  |   Local URL: http://localhost:8501
 perplexis-streamlit-1  |   Network URL: http://172.20.0.3:8501
 perplexis-streamlit-1  |   External URL: http://x.x.x.x:8501
 perplexis-streamlit-1  |
+
+(On your web browser)
+http://localhost:8501
 ```
 
 ## (Type-2) Manual

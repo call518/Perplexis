@@ -13,7 +13,7 @@ services:
     depends_on:
       - pgvector
     ports:
-      - "18501:8501"
+      - "8501:8501"
 
   pgvector:
     image: call518/pgvector:pg16-1.0.0
@@ -24,7 +24,7 @@ services:
     volumes:
       - pgvector-pgdata:/var/lib/postgresql/data
     ports:
-      - "15432:5432"
+      - "5432:5432"
 
 volumes:
   pgvector-pgdata:
