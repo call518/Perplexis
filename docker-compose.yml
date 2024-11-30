@@ -16,11 +16,9 @@ services:
       - PGVECTOR_PASS = changeme
     volumes:
       - .:/Perplexis
-    network_mode: "service:pgvector"
     ports:
       - "8501:8501"
-    depends_on:
-      - pgvector
+      - "5432:5432"
 
   pgvector:
     image: call518/pgvector:pg16-1.0.0
@@ -30,8 +28,9 @@ services:
       - POSTGRES_DB=perplexis
     volumes:
       - pgvector-pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    network_mode: "service:streamlit"
+    depends_on:
+      - streamlit
 
 volumes:
   pgvector-pgdata:
