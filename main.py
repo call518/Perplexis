@@ -22,11 +22,10 @@ def main():
 
     ## How to Use
 
-    1. **Select Mode**: Choose 'Chat' or 'RAG' mode from the sidebar.
-    2. **Set Parameters**: Adjust preferred settings such as AI model, embedding model, temperature, etc.
-    3. **Upload Documents (RAG Mode)**: Upload documents or enter a URL to use as context in 'RAG' mode.
-    4. **Enter Questions**: Type questions into the input field at the bottom of the chat interface.
-    5. **Review Responses**: The AI assistant will respond based on the mode and the provided context.
+    1. **Set Parameters**: Adjust preferred settings such as AI model, embedding model, temperature, etc.
+    2. **Upload Documents (RAG Mode)**: Upload documents or enter a URL to use as context in 'RAG' mode.
+    3. **Enter Questions**: Type questions into the input field at the bottom of the chat interface.
+    4. **Review Responses**: The AI assistant will respond based on the mode and the provided context.
 
     ## Notes
 
