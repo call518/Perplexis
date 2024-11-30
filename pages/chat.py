@@ -169,7 +169,7 @@ default_values = {
     'vectorstore_type': "pinecone",
     'selected_ai': None,
     'selected_llm': None,
-    'temperature': 0.00,
+    'temperature': 0.80,
     'chunk_size': None,
     'chunk_overlap': None,
     'retriever': None,
