@@ -1,5 +1,6 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval googlesearch-python chromadb pysqlite3-binary pypdf pymupdf rapidocr-onnxruntime langchain-experimental
+# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval googlesearch-python chromadb pysqlite3-binary pypdf pymupdf rapidocr-onnxruntime langchain-experimental langchain_postgres
 # pip list --format=freeze > requirements.txt (또는 pip freeze > requirements.txt)
+# docker run --name perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -d call518/pgvector:pg16-1.0.0
 
 ### (임시) pysqlite3 설정 - sqlite3 모듈을 pysqlite3로 대체
 ### pip install pysqlite3-binary 필요
@@ -52,6 +53,8 @@ from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 from langchain_community.vectorstores import Chroma
+from langchain_postgres import PGVector
+from langchain_postgres.vectorstores import PGVector
 import chromadb
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader
@@ -62,6 +65,8 @@ from googlesearch import search
 import os
 import shutil
 import requests
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 # 페이지 정보 정의
 st.set_page_config(page_title="Perplexis:Rag", page_icon=":books:", layout="wide")
@@ -90,6 +95,26 @@ if st.secrets["KEYS"].get("PINECONE_API_KEY"):
     os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY")
 elif not os.environ.get("PINECONE_API_KEY"):
     os.environ["PINECONE_API_KEY"] = ""
+
+if st.secrets["KEYS"].get("PGVECTOR_HOST"):
+    os.environ["PGVECTOR_HOST"] = st.secrets["KEYS"].get("PGVECTOR_HOST")
+elif not os.environ.get("PGVECTOR_HOST"):
+    os.environ["PGVECTOR_HOST"] = "localhost"
+
+if st.secrets["KEYS"].get("PGVECTOR_PORT"):
+    os.environ["PGVECTOR_PORT"] = st.secrets["KEYS"].get("PGVECTOR_PORT")
+elif not os.environ.get("PGVECTOR_PORT"):
+    os.environ["PGVECTOR_PORT"] = "5432"
+
+if st.secrets["KEYS"].get("PGVECTOR_USER"):
+    os.environ["PGVECTOR_USER"] = st.secrets["KEYS"].get("PGVECTOR_USER")
+elif not os.environ.get("PGVECTOR_USER"):
+    os.environ["PGVECTOR_USER"] = "perplexis"
+
+if st.secrets["KEYS"].get("PGVECTOR_PASS"):
+    os.environ["PGVECTOR_PASS"] = st.secrets["KEYS"].get("PGVECTOR_PASS")
+elif not os.environ.get("PGVECTOR_PASS"):
+    os.environ["PGVECTOR_PASS"] = "changeme"
 
 ### (Optional) Langchain API Key 설정
 if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
@@ -146,7 +171,7 @@ default_values = {
     'selected_embedding_provider': None,
     'selected_embedding_model': None,
     'selected_embedding_dimension': None,
-    'vectorstore_type': "pinecone",
+    'vectorstore_type': None,
     'selected_ai': None,
     'selected_llm': None,
     'temperature': 0.00,
@@ -155,6 +180,7 @@ default_values = {
     'retriever': None,
     'pinecone_index_reset': True,
     'chromadb_root_reset': True,
+    'pgvector_db_reset': True,
     'rag_search_type': None,
     'rag_score': 0.01,
     'rag_top_k': None,
@@ -238,6 +264,25 @@ def get_llm_model_name():
     else:
         llm_model_name = "Unknown LLM"
     return llm_model_name
+
+def reset_pgvector(connection):
+    # Create a new SQLAlchemy engine
+    engine = create_engine(connection)
+
+    # Create a new session
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    tables = [ "langchain_pg_collection", "langchain_pg_embedding" ]
+
+    from sqlalchemy import text
+
+    for table in tables:
+        # Drop the existing collection if it exists
+        session.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE"))
+    
+    session.commit()
+    session.close()
 
 ### ChromaDB 초기화 정의
 chromadb_root = './chromadb'
@@ -347,7 +392,7 @@ def main():
         with col_embedding:
             st.session_state['selected_embedding_provider'] = st.radio("**:blue[Embeddings]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
         with col_vectorstore:
-            st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("ChromaDB", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
+            st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("PGVector", "ChromaDB", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
         
 
         if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
@@ -357,10 +402,13 @@ def main():
         if st.session_state.get('selected_embedding_provider', "Ollama") == "Ollama" or st.session_state.get('selected_ai', "Ollama") == "Ollama":
             os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
     
-        if st.session_state.get('vectorstore_type', 'ChromaDB') == "ChromaDB":
+        if st.session_state['vectorstore_type'] == "ChromaDB":
             st.session_state['chromadb_root_reset'] = st.checkbox("Reset ChromaDB", value=st.session_state.get('chromadb_root_reset', True), disabled=st.session_state['is_analyzed'])
+
+        if st.session_state['vectorstore_type'] == "PGVector":
+            st.session_state['pgvector_db_reset'] = st.checkbox("Reset PGVector", value=st.session_state.get('pgvector_db_reset', True), disabled=st.session_state['is_analyzed'])
     
-        if st.session_state.get('vectorstore_type', 'ChromaDB') == "Pinecone":
+        if st.session_state['vectorstore_type'] == "Pinecone":
             os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
             st.session_state['pinecone_index_reset'] = st.checkbox("Reset Pinecone Index", value=st.session_state.get('pinecone_index_reset', False), disabled=st.session_state['is_analyzed'])
             st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
@@ -652,10 +700,10 @@ def main():
                     # 지정된 이름의 Pinecone Index가 존재하지 않으면, 신규 생성
                     if (pinecone_index_name not in pc.list_indexes().names()):
                         pc.create_index(
-                            name=pinecone_index_name,
-                            dimension=st.session_state.get('selected_embedding_dimension', None),
-                            metric=st.session_state['pinecone_metric'],
-                            spec=ServerlessSpec(
+                            name = pinecone_index_name,
+                            dimension = st.session_state.get('selected_embedding_dimension', None),
+                            metric = st.session_state['pinecone_metric'],
+                            spec = ServerlessSpec(
                                 cloud='aws',
                                 region='us-east-1'
                             )
@@ -663,22 +711,41 @@ def main():
 
                     # Pinecone Embedding 처리
                     vectorstore = PineconeVectorStore.from_documents(
-                        st.session_state.get('documents_chunks', []),
-                        st.session_state['embedding_instance'],
-                        index_name=pinecone_index_name
+                        documents = st.session_state.get('documents_chunks', []),
+                        embedding = st.session_state['embedding_instance'],
+                        index_name = pinecone_index_name
                     )
-                else:
+                    
+                if st.session_state['vectorstore_type'] == "ChromaDB":
                     chromadb_dir_path = f"{chromadb_root}/Perplexis-{st.session_state.get('selected_ai', 'unknown')}"
                     
                     if st.session_state.get('chromadb_root_reset', True):
                         reset_chromadb(chromadb_dir_path)
                     
                     vectorstore = Chroma.from_documents(
-                        st.session_state.get('documents_chunks', []),
-                        st.session_state['embedding_instance'],
-                        persist_directory=f"{chromadb_dir_path}",
+                        documents = st.session_state.get('documents_chunks', []),
+                        embedding = st.session_state['embedding_instance'],
+                        persist_directory = f"{chromadb_dir_path}",
                     )
-                
+                    
+                if st.session_state['vectorstore_type'] == "PGVector":
+                    connection = f"postgresql+psycopg://{os.environ['PGVECTOR_USER']}:{os.environ['PGVECTOR_PASS']}@{os.environ['PGVECTOR_HOST']}:{os.environ['PGVECTOR_PORT']}/perplexis"
+                    collection_name = "rag_collection"
+                    
+                    if st.session_state.get('pgvector_db_reset', True):
+                        reset_pgvector(connection)
+                    
+                    vectorstore = PGVector(
+                        connection = connection,
+                        embeddings = st.session_state['embedding_instance'],
+                        embedding_length = st.session_state.get('selected_embedding_dimension', None),
+                        collection_name = collection_name,
+                        distance_strategy = "cosine", ### Should be one of l2, cosine, inner.
+                        use_jsonb=True,
+                    )
+                    
+                    vectorstore.add_documents(st.session_state.get('documents_chunks', []), ids=[doc.metadata["id"] for doc in st.session_state.get('documents_chunks', [])])
+
                 # 주어진 문서 내용 처리(임베딩)
                 if st.session_state['rag_search_type'] == "similarity_score_threshold":
                     search_kwargs = {"k": int(st.session_state['rag_top_k']), "score_threshold": st.session_state['rag_score']}
@@ -686,6 +753,7 @@ def main():
                     search_kwargs = {"k": int(st.session_state['rag_top_k'])}
                 elif st.session_state['rag_search_type'] == "mmr":
                     search_kwargs = {"k": int(st.session_state['rag_top_k']), "fetch_k": int(st.session_state['rag_fetch_k']), "lambda_mult": st.session_state['rag_lambda_mult']}
+
                 st.session_state['retriever'] = vectorstore.as_retriever(search_type=st.session_state['rag_search_type'], search_kwargs=search_kwargs)
                 
                 if st.session_state['retriever']:
@@ -749,6 +817,8 @@ def main():
         )
         st.write("")
 
+#-----------------------------------------------------------------------
+
     # 메인 창 로딩 가능 여부(retriever 객체 존재) 확인
     try:
         if not (st.session_state['retriever'] and st.session_state['session_id']) or not st.session_state['is_analyzed']:
@@ -764,7 +834,7 @@ def main():
 
     ### container_user_textbox 처리
     with container_user_textbox:
-        with st.form(key='my_form', clear_on_submit=True):
+        with st.form(key='user_textbox', clear_on_submit=True):
             user_input = st.text_area("You:", key='input', height=100, placeholder="Type your message here...")
             submit_button = st.form_submit_button(label='Send', use_container_width=False, help="Click to send your message", on_click=None, args=None, kwargs=None, disabled=False, icon=":material/send:", type='primary')
 
@@ -860,6 +930,7 @@ def main():
                             - <b>Chunk-Count</b>: <font color=black>{len(st.session_state.get('documents_chunks', []))}</font><br>
                             - <b>Chunk-Size</b>: <font color=black>{st.session_state.get('chunk_size', None)}</font><br>
                             - <b>Chunk-Overlap</b>: <font color=black>{st.session_state.get('chunk_overlap', None)}</font><br>
+                            - <b>VectorDB Type</b>: <font color=black>{st.session_state.get('vectorstore_type', None)}</font><br>
                             - <b>AI</b>: <font color=red>{st.session_state.get('selected_ai', 'Unknown AI')}</font><br>
                             - <b>LLM Model</b>: <font color=black>{llm_model_name}</font><br>
                             - <b>LLM Args(Common) temperature</b>: <font color=black>{temperature}</font><br>

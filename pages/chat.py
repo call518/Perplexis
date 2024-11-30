@@ -91,6 +91,26 @@ if st.secrets["KEYS"].get("PINECONE_API_KEY"):
 elif not os.environ.get("PINECONE_API_KEY"):
     os.environ["PINECONE_API_KEY"] = ""
 
+if st.secrets["KEYS"].get("PGVECTOR_HOST"):
+    os.environ["PGVECTOR_HOST"] = st.secrets["KEYS"].get("PGVECTOR_HOST")
+elif not os.environ.get("PGVECTOR_HOST"):
+    os.environ["PGVECTOR_HOST"] = "localhost"
+
+if st.secrets["KEYS"].get("PGVECTOR_PORT"):
+    os.environ["PGVECTOR_PORT"] = st.secrets["KEYS"].get("PGVECTOR_PORT")
+elif not os.environ.get("PGVECTOR_PORT"):
+    os.environ["PGVECTOR_PORT"] = "5432"
+
+if st.secrets["KEYS"].get("PGVECTOR_USER"):
+    os.environ["PGVECTOR_USER"] = st.secrets["KEYS"].get("PGVECTOR_USER")
+elif not os.environ.get("PGVECTOR_USER"):
+    os.environ["PGVECTOR_USER"] = "perplexis"
+
+if st.secrets["KEYS"].get("PGVECTOR_PASS"):
+    os.environ["PGVECTOR_PASS"] = st.secrets["KEYS"].get("PGVECTOR_PASS")
+elif not os.environ.get("PGVECTOR_PASS"):
+    os.environ["PGVECTOR_PASS"] = "changeme"
+
 ### (Optional) Langchain API Key 설정
 if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
     os.environ["LANGCHAIN_TRACING_V2"]= "true"

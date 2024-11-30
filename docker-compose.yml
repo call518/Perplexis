@@ -10,6 +10,10 @@ services:
       - OPENAI_API_KEY=
       - PINECONE_API_KEY=
       - LANGCHAIN_API_KEY=
+      - PGVECTOR_HOST = localhost
+      - PGVECTOR_PORT = 5432
+      - PGVECTOR_USER = perplexis
+      - PGVECTOR_PASS = changeme
     depends_on:
       - pgvector
     ports:

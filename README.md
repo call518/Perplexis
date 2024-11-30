@@ -108,10 +108,12 @@ $ vi .streamlit/secrets.toml
 
 [KEYS]
 ### (Mandatory)
+...
 OLLAMA_BASE_URL = "{your ollama api server base url}"
 OPENAI_BASE_URL = "https://api.openai.com/v1"
 OPENAI_API_KEY = "{your openai api key}"
 PINECONE_API_KEY = "{your pinecone api key}"
+...
 
 ### (Optional)
 LANGCHAIN_API_KEY = "{your langchain api key}"
@@ -121,6 +123,12 @@ LANGCHAIN_API_KEY = "{your langchain api key}"
 
 ```bash
 $ pip install -r requirements.txt
+```
+
+### Run PGVector Database (Optional)
+
+```bash
+$ docker run --name perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -d call518/pgvector:pg16-1.0.0
 ```
 
 ### Run App
