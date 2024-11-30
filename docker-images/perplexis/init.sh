@@ -28,6 +28,22 @@ if [ $# -eq 0 ]; then
         sed -i "s|^PINECONE_API_KEY = .*|PINECONE_API_KEY = \"$PINECONE_API_KEY\"|g" $SECRETS_TOML
     fi
 
+    if [ -n "$PGVECTOR_HOST" ]; then
+        sed -i "s|^PGVECTOR_HOST = .*|PGVECTOR_HOST = \"$PGVECTOR_HOST\"|g" $SECRETS_TOML
+    fi
+
+    if [ -n "$PGVECTOR_PORT" ]; then
+        sed -i "s|^PGVECTOR_PORT = .*|PGVECTOR_PORT = \"$PGVECTOR_PORT\"|g" $SECRETS_TOML
+    fi
+
+    if [ -n "$PGVECTOR_USER" ]; then
+        sed -i "s|^PGVECTOR_USER = .*|PGVECTOR_USER = \"$PGVECTOR_USER\"|g" $SECRETS_TOML
+    fi
+
+    if [ -n "$PGVECTOR_PASS" ]; then
+        sed -i "s|^PGVECTOR_PASS = .*|PGVECTOR_PASS = \"$PGVECTOR_PASS\"|g" $SECRETS_TOML
+    fi
+
     if [ -n "$LANGCHAIN_API_KEY" ]; then
         sed -i "s|^LANGCHAIN_API_KEY = .*|LANGCHAIN_API_KEY = \"$LANGCHAIN_API_KEY\"|g" $SECRETS_TOML
     fi

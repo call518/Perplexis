@@ -1,8 +1,21 @@
 version: '3.8'
 
 services:
+  pgvector:
+    image: call518/pgvector:pg16-1.0.0
+    environment:
+      - POSTGRES_USER=perplexis
+      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_DB=perplexis
+    volumes:
+      - pgvector-pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    depends_on:
+      - pgvector
+    network_mode: "service:pgvector"
   streamlit:
-    image: call518/perplexis:1.0.2
+    image: call518/perplexis:1.0.3
     environment:
       - PERPLEXIS_BRANCH=main
       - OLLAMA_BASE_URL=http://localhost:11434
@@ -18,17 +31,6 @@ services:
       - pgvector
     ports:
       - "8501:8501"
-
-  pgvector:
-    image: call518/pgvector:pg16-1.0.0
-    environment:
-      - POSTGRES_USER=perplexis
-      - POSTGRES_PASSWORD=changeme
-      - POSTGRES_DB=perplexis
-    volumes:
-      - pgvector-pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
 
 volumes:
   pgvector-pgdata:

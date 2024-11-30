@@ -27,7 +27,10 @@ RUN dnf install -y \
         cronie \
         at \
         libselinux-utils \
+        iputils \
         git \
+        telnet \
+        PGVECTOR_PASS \
 		python39 \
 		python3.9-pip \
         && dnf clean all
