@@ -30,7 +30,7 @@ RUN dnf install -y \
         iputils \
         git \
         telnet \
-        PGVECTOR_PASS \
+        postgresql \
 		python39 \
 		python3.9-pip \
         && dnf clean all
