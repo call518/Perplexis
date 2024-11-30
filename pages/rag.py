@@ -26,9 +26,15 @@ from streamlit.runtime.scriptrunner import get_script_run_ctx
 import uuid
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+
 from langchain_community.chat_message_histories import ChatMessageHistory
+
 import bs4
-from langchain_community.document_loaders import WebBaseLoader
+
+#from langchain_community.document_loaders import WebBaseLoader
+### langchain_community --> langchain 으로 변경
+from langchain.document_loaders import WebBaseLoader
+
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
@@ -38,7 +44,9 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_ollama import OllamaLLM
 
 # from langchain_ollama import OllamaEmbeddings
-from langchain_community.embeddings import OllamaEmbeddings ### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
+#from langchain_community.embeddings import OllamaEmbeddings ### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
+### langchain_community --> langchain 으로 변경
+from langchain.embeddings import OllamaEmbeddings ### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
 
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -53,14 +61,24 @@ import re
 from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
-from langchain_community.vectorstores import Chroma
+
+# from langchain_community.vectorstores import Chroma
+### langchain_community --> langchain 으로 변경
+from langchain.vectorstores import Chroma
+
 from langchain_postgres import PGVector
 from langchain_postgres.vectorstores import PGVector
 import chromadb
 from langchain_core.documents import Document
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_community.document_loaders import TextLoader
+
+# from langchain_community.document_loaders import PyPDFLoader
+# from langchain_community.document_loaders import PyMuPDFLoader
+# from langchain_community.document_loaders import TextLoader
+### langchain_community --> langchain 으로 변경
+from langchain.document_loaders import PyPDFLoader
+from langchain.document_loaders import PyMuPDFLoader
+from langchain.document_loaders import TextLoader
+
 from googlesearch import search
 
 import os

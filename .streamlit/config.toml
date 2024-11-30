@@ -16,7 +16,7 @@ headless = true
 # XSRF 보호 활성화 (기본값: true)
 #enableXsrfProtection = true
 # 최대 파일 업로드 크기 (기본값: 200MB)
-maxUploadSize = 20
+maxUploadSize = 200
 
 [browser]
 # 사용 통계 수집 (기본값: true)
