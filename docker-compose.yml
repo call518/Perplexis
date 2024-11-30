@@ -5,7 +5,7 @@ services:
     image: call518/perplexis:1.0.3
     environment:
       # - PERPLEXIS_BRANCH=main
-      - OLLAMA_BASE_URL=http://localhost:11434
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - OPENAI_BASE_URL=https://api.openai.com/v1
       - OPENAI_API_KEY=
       - PINECONE_API_KEY=
@@ -19,6 +19,8 @@ services:
     ports:
       - "8501:8501"
       - "5432:5432"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   pgvector:
     image: call518/pgvector:pg16-1.0.0
