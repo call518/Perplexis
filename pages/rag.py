@@ -471,7 +471,7 @@ def main():
         with col_chunk_size:
             st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=100, max_value=5000, value=1000, step=100, disabled=st.session_state['is_analyzed'])
         with col_chunk_overlap:
-            st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=50, max_value=1000, value=50, step=100, disabled=st.session_state['is_analyzed'])
+            st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=50, max_value=1000, value=100, step=100, disabled=st.session_state['is_analyzed'])
             if not (st.session_state['chunk_size'] >= (st.session_state['chunk_overlap'] * 2)):
                 st.error("Chunk Overlap must be less than Chunk Size.")
                 st.stop()
