@@ -2,9 +2,8 @@ FROM rockylinux:9.3
 
 COPY Dockerfile /
 
-RUN dnf install -y epel-release
-
-RUN dnf install -y \
+RUN dnf install -y epel-release && \
+    dnf install -y \
         passwd \
         psmisc \
         wget \

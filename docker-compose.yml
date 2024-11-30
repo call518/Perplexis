@@ -1,6 +1,26 @@
 version: '3.8'
 
 services:
+  streamlit:
+    image: call518/perplexis:1.0.3
+    environment:
+      # - PERPLEXIS_BRANCH=main
+      - OLLAMA_BASE_URL=http://localhost:11434
+      - OPENAI_BASE_URL=https://api.openai.com/v1
+      - OPENAI_API_KEY=
+      - PINECONE_API_KEY=
+      - LANGCHAIN_API_KEY=
+      - PGVECTOR_HOST = localhost
+      - PGVECTOR_PORT = 5432
+      - PGVECTOR_USER = perplexis
+      - PGVECTOR_PASS = changeme
+    # volumes:
+    #   - .:/Perplexis
+    depends_on:
+      - pgvector
+    ports:
+      - "8501:8501"
+
   pgvector:
     image: call518/pgvector:pg16-1.0.0
     environment:
@@ -14,23 +34,6 @@ services:
     depends_on:
       - pgvector
     network_mode: "service:pgvector"
-  streamlit:
-    image: call518/perplexis:1.0.3
-    environment:
-      - PERPLEXIS_BRANCH=main
-      - OLLAMA_BASE_URL=http://localhost:11434
-      - OPENAI_BASE_URL=https://api.openai.com/v1
-      - OPENAI_API_KEY=
-      - PINECONE_API_KEY=
-      - LANGCHAIN_API_KEY=
-      - PGVECTOR_HOST = localhost
-      - PGVECTOR_PORT = 5432
-      - PGVECTOR_USER = perplexis
-      - PGVECTOR_PASS = changeme
-    depends_on:
-      - pgvector
-    ports:
-      - "8501:8501"
 
 volumes:
   pgvector-pgdata:

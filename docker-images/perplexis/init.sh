@@ -2,11 +2,11 @@
 
 set -e
 
-if [ -z $PERPLEXIS_BRANCH ]; then
-    PERPLEXIS_BRANCH="main"
-fi
-git clone https://github.com/call518/Perplexis.git /Perplexis
-cd /Perplexis && git checkout $PERPLEXIS_BRANCH && rm -rf .git
+# if [ -z $PERPLEXIS_BRANCH ]; then
+#     PERPLEXIS_BRANCH="main"
+# fi
+# git clone https://github.com/call518/Perplexis.git /Perplexis
+# cd /Perplexis && git checkout $PERPLEXIS_BRANCH && rm -rf .git
 
 if [ $# -eq 0 ]; then
     SECRETS_TOML="/Perplexis/.streamlit/secrets.toml"
