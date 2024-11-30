@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   streamlit:
-    image: call518/perplexis:1.0.1
+    image: call518/perplexis:1.0.2
     environment:
       - PERPLEXIS_BRANCH=main
       - OLLAMA_BASE_URL=http://localhost:11434
