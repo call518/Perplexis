@@ -393,7 +393,7 @@ def main():
         with col_embedding:
             st.session_state['selected_embedding_provider'] = st.radio("**:blue[Embeddings]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
         with col_vectorstore:
-            st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("PGVector", "ChromaDB", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
+            st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("PGVector", "ChromaDB", "Pinecone"), index=1, disabled=st.session_state['is_analyzed'])
         
 
         if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
