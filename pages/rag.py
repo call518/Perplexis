@@ -471,7 +471,7 @@ def main():
             # mxbai-embed-large: dimension=1024 (State-of-the-art large embedding model from mixedbread.ai) ("num_ctx": 512)
             # nomic-embed-text: dimension=768 (A high-performing open embedding model with a large token context window.) ("num_ctx": 8192)
             # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
-            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b"], index=0,  disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b", "llama3.2:1b", "llama3.2:3b"], index=0,  disabled=st.session_state['is_analyzed'])
 
         st.session_state['selected_embedding_dimension'] = get_max_value_of_model_embedding_dimensions(st.session_state.get('selected_embedding_model', None))
         print(f"[DEBUG] (selected_embedding_model) {st.session_state.get('selected_embedding_model', None)}")
@@ -539,17 +539,11 @@ def main():
         if st.session_state.get('selected_ai', "Ollama") == "Ollama":
             col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
             with col_llm_ollama_num_ctx:
-                if st.session_state['llm_ollama_num_ctx'] is None:
-                    st.session_state['llm_ollama_num_ctx'] = int(get_max_value_of_model_num_ctx(st.session_state['selected_llm']) / 2)
-                    if st.session_state['llm_ollama_num_ctx'] < 256:
-                        st.session_state['llm_ollama_num_ctx'] = 256
-                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=256, max_value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), value=st.session_state['llm_ollama_num_ctx'], disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=256, max_value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), value=int(get_max_value_of_model_num_ctx(st.session_state['selected_llm']) / 2), disabled=st.session_state['is_analyzed'])
+                print(f"[DEBUG] (llm_ollama_num_ctx) {st.session_state['llm_ollama_num_ctx']}")
             with col_llm_ollama_num_predict:
-                if st.session_state['llm_ollama_num_predict'] is None:
-                    st.session_state['llm_ollama_num_predict'] = int(get_max_value_of_model_num_predict(st.session_state['selected_llm']) / 2)
-                    if st.session_state['llm_ollama_num_predict'] < 128:
-                        st.session_state['llm_ollama_num_predict'] = 128
-                st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=st.session_state['llm_ollama_num_predict'], disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=int(get_max_value_of_model_num_predict(st.session_state['selected_llm']) / 2), disabled=st.session_state['is_analyzed'])
+                print(f"[DEBUG] (llm_ollama_num_predict) {st.session_state['llm_ollama_num_predict']}")
 
         ### Set OpenAI API Key
         if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":

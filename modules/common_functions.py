@@ -1,15 +1,15 @@
 def get_max_value_of_model_max_tokens(model_name):
-    max_tokens = {
+    ditc = {
         "gpt-4o-mini": 16384,
         "gpt-4o": 16384,
         "gpt-4-turbo": 4096,
         "gpt-4": 8192,
         "gpt-3.5-turbo": 4096,
     }
-    return max_tokens.get(model_name, 1024)
+    return ditc.get(model_name, 1024)
 
 def get_max_value_of_model_num_predict(model_name):
-    num_ctx = {
+    ditc = {
         "gemma2:2b": 2048,
         "gemma2:9b": 4096,
         "gemma2:27b": 8192,
@@ -19,23 +19,23 @@ def get_max_value_of_model_num_predict(model_name):
         "codegemma:2b": 4096,
         "codegemma:7b": 8192,
     }
-    return num_ctx.get(model_name, 128)
+    return ditc.get(model_name, 128)
 
 def get_max_value_of_model_num_ctx(model_name):
-    num_ctx = {
+    ditc = {
         "gemma2:2b": 8192,
         "gemma2:9b": 8192,
         "gemma2:27b": 8192,
-        "mistral:7b": 8192,
-        "llama3.2:1b": 2048,
-        "llama3.2:3b": 2048,
-        "codegemma:2b": 4096,
+        "mistral:7b": 32768,
+        "llama3.2:1b": 131072,
+        "llama3.2:3b": 131072,
+        "codegemma:2b": 8192,
         "codegemma:7b": 8192,
     }
-    return num_ctx.get(model_name, 1024)
+    return ditc.get(model_name, 1024)
 
 def get_max_value_of_model_embedding_dimensions(model_name):
-    embedding_dimensions = {
+    ditc = {
         ### OpenAI
         "text-embedding-3-small": 1536,
         "text-embedding-3-large": 3072,
@@ -50,12 +50,14 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         "gemma2:9b": 3584,
         "gemma2:27b": 4608,
         "llama3:8b": 4096,
+        "llama3.2:1b": 2048,
+        "llama3.2:3b": 3072,
     }
-    return embedding_dimensions.get(model_name)
+    return ditc.get(model_name)
 
 def get_ai_role_and_sysetm_prompt(role="Basic chatbot", only_key=False):
     ### (일부 참고 출처) https://weam.ai/blog/prompts/best-system-prompts-for-chatgpt/
-    prompts = {
+    ditc = {
         "Basic chatbot": "You are a basic chatbot. Respond to user queries in a friendly and helpful manner, providing accurate information and assistance based on the user's input.",
         "Customer support agent": "You are a customer support agent. Respond to customer inquiries, resolve issues, and provide assistance with products or services in a friendly and professional manner.",
         "Technical support agent": "You are a technical support agent. Assist users with technical issues, troubleshoot problems, and provide solutions to software or hardware-related queries.",
@@ -124,13 +126,13 @@ def get_ai_role_and_sysetm_prompt(role="Basic chatbot", only_key=False):
         "Python and the Pandas library expert": "You are a data engineer with expertise in Python and the Pandas library. Show how to clean and analyze a given dataset using Pandas, including reading the data, handling missing values, filtering, sorting, and aggregating the data."
     }
     if only_key:
-        return list(prompts.keys())
-    return prompts.get(role, "Role not found.")
+        return list(ditc.keys())
+    return ditc.get(role, "Role not found.")
 
 
 ### (일부 참고 출처) https://developers.google.com/custom-search/docs/json_api_reference?hl=ko#countryCodes
 def get_country_name_by_code(code):
-    country_codes = {
+    ditc = {
         "ad": "Andorra",
         "ae": "United Arab Emirates",
         "af": "Afghanistan",
@@ -376,4 +378,4 @@ def get_country_name_by_code(code):
         "zm": "Zambia",
         "zw": "Zimbabwe"
     }
-    return country_codes.get(code.lower(), "Country code not found.")
+    return ditc.get(code.lower(), "Country code not found.")
