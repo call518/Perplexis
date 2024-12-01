@@ -17,6 +17,8 @@ from modules.common_functions import get_max_value_of_model_max_tokens
 from modules.common_functions import get_max_value_of_model_num_ctx
 from modules.common_functions import get_max_value_of_model_embedding_dimensions
 
+#--------------------------------------------------
+
 import streamlit as st
 # from streamlit_chat import message
 from streamlit_js_eval import streamlit_js_eval
@@ -31,9 +33,7 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 
 import bs4
 
-#from langchain_community.document_loaders import WebBaseLoader
-### langchain_community --> langchain 으로 변경
-from langchain.document_loaders import WebBaseLoader
+from langchain_community.document_loaders import WebBaseLoader
 
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -43,10 +43,9 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from langchain_ollama import OllamaLLM
 
+### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
 # from langchain_ollama import OllamaEmbeddings
-#from langchain_community.embeddings import OllamaEmbeddings ### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
-### langchain_community --> langchain 으로 변경
-from langchain.embeddings import OllamaEmbeddings ### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
+from langchain_community.embeddings import OllamaEmbeddings
 
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -62,22 +61,16 @@ from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 
-# from langchain_community.vectorstores import Chroma
-### langchain_community --> langchain 으로 변경
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 
 from langchain_postgres import PGVector
 from langchain_postgres.vectorstores import PGVector
 import chromadb
 from langchain_core.documents import Document
 
-# from langchain_community.document_loaders import PyPDFLoader
-# from langchain_community.document_loaders import PyMuPDFLoader
-# from langchain_community.document_loaders import TextLoader
-### langchain_community --> langchain 으로 변경
-from langchain.document_loaders import PyPDFLoader
-from langchain.document_loaders import PyMuPDFLoader
-from langchain.document_loaders import TextLoader
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_community.document_loaders import TextLoader
 
 from googlesearch import search
 
@@ -86,6 +79,8 @@ import shutil
 import requests
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+#--------------------------------------------------
 
 # 페이지 정보 정의
 st.set_page_config(page_title="Perplexis:Rag", page_icon=":books:", layout="wide")
@@ -202,7 +197,7 @@ default_values = {
     'chromadb_root_reset': True,
     'pgvector_db_reset': True,
     'rag_search_type': None,
-    'rag_score': 0.01,
+    'rag_score_threshold': 0.60,
     'rag_top_k': None,
     'rag_fetch_k': None,
     'rag_lambda_mult': None,
@@ -217,7 +212,7 @@ default_values = {
     'rag_history_temperature': [],
     'rag_history_rag_search_type': [],
     'rag_history_rag_top_k': [],
-    'rag_history_rag_score': [],
+    'rag_history_rag_score_threshold': [],
     'rag_history_rag_fetch_k': [],
     'rag_history_rag_rag_lambda_mult': [],
     'store': {},
@@ -477,15 +472,15 @@ def main():
                 st.stop()
 
         ### (임시) similarity_score_threshold 모드에서, score_threshold 값 사용 안되는 버그 있음. (해결될 때 까지 노출 안함...)
-        #st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=0, disabled=st.session_state['is_analyzed'])
-        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "mmr"], index=0, disabled=st.session_state['is_analyzed'])
+        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=1, disabled=st.session_state['is_analyzed'])
+        # st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "mmr"], index=0, disabled=st.session_state['is_analyzed'])
     
         if st.session_state['rag_search_type'] == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
             with col_rag_arg1:
                 st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])        
             with col_rag_arg2:
-                st.session_state['rag_score'] = st.number_input("Score", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_score_threshold'] = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "similarity":
             st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "mmr":
@@ -495,7 +490,7 @@ def main():
             with col_rag_arg2:
                 st.session_state['rag_fetch_k'] = st.number_input("MMR Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
             with col_rag_arg3:
-                st.session_state['rag_lambda_mult'] = st.number_input("MMR Lambda Mult", min_value=0.01, max_value=1.00, value=0.80, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_lambda_mult'] = st.number_input("MMR Lambda Mult", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
 
         ### LLM 모델 설정
         col_llm_top_p, col_repeat_penalty = st.sidebar.columns(2)
@@ -750,6 +745,10 @@ def main():
                     vectorstore = Chroma.from_documents(
                         documents = st.session_state.get('documents_chunks', []),
                         embedding = st.session_state['embedding_instance'],
+                        ### collection_metadata 문서 --> https://docs.trychroma.com/guides#changing-the-distance-function
+                        # collection_metadata={"hnsw:space": "l2"},
+                        # collection_metadata={"hnsw:space": "ip"},
+                        collection_metadata={"hnsw:space": "cosine"},
                         persist_directory = f"{chromadb_dir_path}",
                     )
                     
@@ -764,7 +763,10 @@ def main():
                         embeddings = st.session_state['embedding_instance'],
                         embedding_length = st.session_state.get('selected_embedding_dimension', None),
                         collection_name = 'perplexis_rag',
-                        distance_strategy = "cosine", ### Should be one of l2, cosine, inner.
+                        ### "distance_strategy" : Should be one of l2, cosine, inner.
+                        # distance_strategy = "l2",
+                        # distance_strategy = "inner",
+                        distance_strategy = "cosine",
                         use_jsonb=True,
                     )
                     
@@ -772,13 +774,16 @@ def main():
 
                 # 주어진 문서 내용 처리(임베딩)
                 if st.session_state['rag_search_type'] == "similarity_score_threshold":
-                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "score_threshold": st.session_state['rag_score']}
+                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "score_threshold": float(st.session_state['rag_score_threshold'])}
                 elif st.session_state['rag_search_type'] == "similarity":
                     search_kwargs = {"k": int(st.session_state['rag_top_k'])}
                 elif st.session_state['rag_search_type'] == "mmr":
-                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "fetch_k": int(st.session_state['rag_fetch_k']), "lambda_mult": st.session_state['rag_lambda_mult']}
+                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "fetch_k": int(st.session_state['rag_fetch_k']), "lambda_mult": float(st.session_state['rag_lambda_mult'])}
 
-                st.session_state['retriever'] = vectorstore.as_retriever(search_type=st.session_state['rag_search_type'], search_kwargs=search_kwargs)
+                st.session_state['retriever'] = vectorstore.as_retriever(
+                    search_type=st.session_state['rag_search_type'],
+                    search_kwargs=search_kwargs
+                )
                 
                 if st.session_state['retriever']:
                     st.success("Embedding completed!")
@@ -872,7 +877,7 @@ def main():
                 )
 
             ### Debugging Print
-            print(f"AI Result: {result}")
+            print(f"[DEBUG] AI Result: {result}")
             
             ai_response = result['answer']
             
@@ -893,10 +898,10 @@ def main():
             st.session_state['rag_history_rag_search_type'].append(st.session_state.get('rag_search_type', 'Unknown'))
             st.session_state['rag_history_rag_top_k'].append(st.session_state.get('rag_top_k', 'Unknown'))
             if st.session_state.get('rag_search_type', 'Unknown') == "similarity_score_threshold":
-                curr_rag_score = st.session_state.get('rag_score', 'Unknown')
+                curr_rag_score_threshold = st.session_state.get('rag_score_threshold', 'Unknown')
             else:
-                curr_rag_score = "Unknown"
-            st.session_state['rag_history_rag_score'].append(curr_rag_score)
+                curr_rag_score_threshold = "Unknown"
+            st.session_state['rag_history_rag_score_threshold'].append(curr_rag_score_threshold)
             st.session_state['rag_history_rag_fetch_k'].append(st.session_state.get('rag_fetch_k', 'Unknown'))
             st.session_state['rag_history_rag_rag_lambda_mult'].append(st.session_state.get('rag_lambda_mult', 'Unknown'))
 
@@ -921,12 +926,12 @@ def main():
                 rag_fetch_k = st.session_state['rag_history_rag_fetch_k'][i]
                 rag_lambda_mult = st.session_state['rag_history_rag_rag_lambda_mult'][i]
                 if st.session_state.get('rag_search_type', 'Unknown') == "similarity_score_threshold":
-                    rag_score = st.session_state['rag_history_rag_score'][i]
+                    rag_score_threshold = st.session_state['rag_history_rag_score_threshold'][i]
                 else:
-                    rag_score = None
+                    rag_score_threshold = None
                 
                 #st.write(f"Embeddings: {st.session_state.get('selected_embedding_provider', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['rag_history_rag_contexts'][-1])} / Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
-                #st.write(f"RAG Top-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
+                #st.write(f"RAG Top-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score_threshold', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
 
                 # st.markdown(f"""
                 #     <p style='color: #2E9AFE;'>
@@ -938,7 +943,7 @@ def main():
                 #         - <b>Pinecone Metric</b>: {st.session_state.get('pinecone_metric', 'Unknown')}<br>
                 #         - <b>RAG Top-K</b>: {rag_top_k}<br>
                 #         - <b>RAG Search Type</b>: {rag_search_type}<br>
-                #         - <b>RAG Score</b>: {st.session_state.get('rag_score', 'Unknown')}<br>
+                #         - <b>RAG Score</b>: {st.session_state.get('rag_score_threshold', 'Unknown')}<br>
                 #         - <b>RAG Fetch-K</b>: {rag_fetch_k}<br>
                 #         - <b>RAG Lambda Mult</b>: {rag_lambda_mult}<br>
                 #     </p>
@@ -969,7 +974,7 @@ def main():
                             - <b>RAG Contexts</b>: <font color=black>{len(st.session_state['rag_history_rag_contexts'][-1])}</font><br>
                             - <b>RAG Top-K</b>: <font color=black>{rag_top_k}</font><br>
                             - <b>RAG Search Type</b>: <font color=black>{rag_search_type}</font><br>
-                            - <b>RAG Score</b>: <font color=black>{rag_score}</font><br>
+                            - <b>RAG Score</b>: <font color=black>{rag_score_threshold}</font><br>
                             - <b>RAG Fetch-K</b>: <font color=black>{rag_fetch_k}</font><br>
                             - <b>RAG Lambda Mult</b>: <font color=black>{rag_lambda_mult}</font><br>
                             
@@ -979,11 +984,15 @@ def main():
                     )
                     st.write("")
                 
+                # print(f"[DEBUG] (rag_history_rag_contexts) {st.session_state['rag_history_rag_contexts']}")
+                
                 # 소스 데이터 표시
-                if st.session_state["rag_history_rag_contexts"][i]:
-                    with st.expander("Show Contexts"):
-                        for context in st.session_state["rag_history_rag_contexts"][i]:
+                with st.expander("Show Contexts"):
+                    if st.session_state['rag_history_rag_contexts'][i]:
+                        for context in st.session_state['rag_history_rag_contexts'][i]:
                             st.write(context)
+                    else:
+                        st.write("No Contexts")
 
 #-----------------------------------------------------------------------
 
