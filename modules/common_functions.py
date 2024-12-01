@@ -8,11 +8,24 @@ def get_max_value_of_model_max_tokens(model_name):
     }
     return max_tokens.get(model_name, 1024)
 
-def get_max_value_of_model_num_ctx(model_name):
+def get_max_value_of_model_num_predict(model_name):
     num_ctx = {
         "gemma2:2b": 2048,
+        "gemma2:9b": 4096,
+        "gemma2:27b": 8192,
+        "mistral:7b": 8192,
+        "llama3.2:1b": 2048,
+        "llama3.2:3b": 2048,
+        "codegemma:2b": 4096,
+        "codegemma:7b": 8192,
+    }
+    return num_ctx.get(model_name, 128)
+
+def get_max_value_of_model_num_ctx(model_name):
+    num_ctx = {
+        "gemma2:2b": 8192,
         "gemma2:9b": 8192,
-        "gemma2:27b": 16384,
+        "gemma2:27b": 8192,
         "mistral:7b": 8192,
         "llama3.2:1b": 2048,
         "llama3.2:3b": 2048,
@@ -33,6 +46,9 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         "all-minilm:33m": 384,
         "nomic-embed-text": 768,
         "mxbai-embed-large": 1024, 
+        "gemma2:2b": 2304, 
+        "gemma2:9b": 3584, 
+        "gemma2:27b": 4608, 
         "llama3:8b": 4096, 
     }
     return embedding_dimensions.get(model_name)

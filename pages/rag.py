@@ -1,7 +1,8 @@
 # pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval googlesearch-python chromadb pysqlite3-binary pypdf pymupdf rapidocr-onnxruntime langchain-experimental langchain_postgres psycopg_binary sqlalchemy
 # pip list --format=freeze > requirements.txt
 # sed -i '/^pip==/d' requirements.txt
-# (Manual Run PGVector Docker) docker run --name pgsql-pgvectror-perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -d -v pgvector-pgdata:/var/lib/postgresql/data call518/pgvector:pg16-1.0.0
+# (Manual Run PGVector Docker)
+# - docker run --name pgsql-pgvectror-perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -d -v pgvector-pgdata:/var/lib/postgresql/data call518/pgvector:pg16-1.0.0
 
 ### (임시) pysqlite3 설정 - sqlite3 모듈을 pysqlite3로 대체
 ### pip install pysqlite3-binary 필요
@@ -15,6 +16,7 @@ from modules.common_functions import get_ai_role_and_sysetm_prompt
 from modules.common_functions import get_country_name_by_code
 from modules.common_functions import get_max_value_of_model_max_tokens
 from modules.common_functions import get_max_value_of_model_num_ctx
+from modules.common_functions import get_max_value_of_model_num_predict
 from modules.common_functions import get_max_value_of_model_embedding_dimensions
 
 #--------------------------------------------------
@@ -45,8 +47,10 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_ollama import OllamaLLM
 
 ### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
+### --> langchain_ollama.embeddings 으로 정상화 테스트 중...
 # from langchain_ollama import OllamaEmbeddings
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama.embeddings import OllamaEmbeddings
+# from langchain_community.embeddings import OllamaEmbeddings
 
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -162,7 +166,7 @@ def get_remote_ip() -> str:
 # Initialize session state with default values
 default_values = {
     'ai_role': None,
-    'system_prompt_content': None,
+    'system_prompt_ai_role': None,
     'chat_memory': None,
     'chat_conversation': None,
     'chat_response': None,
@@ -174,15 +178,13 @@ default_values = {
     'documents_chunks': [],
     'embedding_instance': None,
     'llm': None,
-    'llm_top_p': 0.80,
+    'llm_top_p': 0.50,
     'llm_openai_presence_penalty': 0.00,
     'llm_openai_frequency_penalty': 1.00,
     'llm_openai_max_tokens': 1024,
-    'llm_openai_max_tokens_fix': 1024,
     'llm_ollama_repeat_penalty': 1.00,
-    'llm_ollama_num_ctx': 1024,
-    'llm_ollama_num_ctx_fix': 1024,
-    'llm_ollama_num_predict': -1,
+    'llm_ollama_num_ctx': None,
+    'llm_ollama_num_predict': None,
     'selected_embedding_provider': None,
     'selected_embedding_model': None,
     'selected_embedding_dimension': None,
@@ -193,7 +195,7 @@ default_values = {
     'pgvector_similarity': None,
     'selected_ai': None,
     'selected_llm': None,
-    'temperature': 0.00,
+    'temperature': 0.01,
     'chunk_size': None,
     'chunk_overlap': None,
     'retriever': None,
@@ -363,17 +365,27 @@ def main():
         )
 
         # QA 시스템 프롬프트 설정 (사용자 질문과, 벡터DB로부터 얻은 결과를 조합해 최종 답변을 작성하기 위한 행동 지침 및 질답 체인 생성)
-        system_prompt_content = get_ai_role_and_sysetm_prompt(st.session_state['ai_role'])
+        system_prompt_ai_role = get_ai_role_and_sysetm_prompt(st.session_state['ai_role'])
         system_prompt = (
             # "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise."
-            # "당신은 모든 분야에서 전문가 입니다. 다음 검색된 컨텍스트 조각을 사용하여 질문자의 질문에 체계적인 답변을 작성하세요. 답을 모르면 모른다고 말하세요. 최소 50개의 문장을 사용하고 답변은 간결하면서도 최대한 상세한 정보를 포함해야 합니다. (답변은 한국어로 작성하세요.)"
-            # "You are an expert in all fields. Using the following retrieved context snippets, formulate a systematic answer to the asker's question. If you don't know the answer, say you don't know. Use at least 50 sentences, and ensure the response is concise yet contains as much detailed information as possible. (The response should be written in Korean.)"
-            # "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible. (Write the answer in Korean.)"
-            # "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible. (Write the answer in Korean.)"
-            f"{system_prompt_content}"
-            "\n\n"
-            "{context}"
+            # "당신은 모든 분야에서 전문가 입니다. 다음 검색된 컨텍스트 조각을 사용하여 질문자의 질문에 체계적인 답변을 작성하세요. 답을 모르면 모른다고 말하세요. 최소 50개의 문장을 사용하고 답변은 간결하면서도 최대한 상세한 정보를 포함해야 합니다."
+            # "You are an expert in all fields. Using the following retrieved context snippets, formulate a systematic answer to the asker's question. If you don't know the answer, say you don't know. Use at least 50 sentences, and ensure the response is concise yet contains as much detailed information as possible."
+            # "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible."
+            # "You are an expert in all fields. Using the context document fragments provided through RAG, compose systematic answers that correspond to the questioner's questions. If you don't know the answer, say you don't know. Use at least 50 sentences, and the answer should be concise yet include as much detailed information as possible."
+            "\n"
+            # "- You are an expert in all fields.\n"
+            # "- If there is no given context, or if the context lacks sufficient information, do not provide an answer; instead, state that you cannot answer because there is no context.\n"
+            "- If there is no content between <CTX-START> and <CTX-END>, or if the context lacks sufficient information, under no circumstances should you provide an answer. (Write a message stating that you cannot answer because there is no context to refer to, and then end the task.)\n"
+            "- If you don't know the answer, say you don't know.\n"
+            "- Write the answer using at least 50 sentences if possible, and include as much accurate and detailed information as possible.\n"
+            "- Write the answer in Korean if possible.\n"
+            f"- {system_prompt_ai_role}\n"
+            "\n"
+            "<CTX-START>\n"
+            "{context}\n"
+            "<CTX-END>\n"
         )
+        print(f"[DEBUG] (system_prompt) {system_prompt}")
         qa_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system_prompt),
@@ -517,9 +529,17 @@ def main():
         if st.session_state.get('selected_ai', "Ollama") == "Ollama":
             col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
             with col_llm_ollama_num_ctx:
-                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=1024, max_value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), disabled=st.session_state['is_analyzed'])
+                if st.session_state['llm_ollama_num_ctx'] is None:
+                    st.session_state['llm_ollama_num_ctx'] = int(get_max_value_of_model_num_ctx(st.session_state['selected_llm']) / 2)
+                    if st.session_state['llm_ollama_num_ctx'] < 256:
+                        st.session_state['llm_ollama_num_ctx'] = 256
+                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=256, max_value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), value=st.session_state['llm_ollama_num_ctx'], disabled=st.session_state['is_analyzed'])
             with col_llm_ollama_num_predict:
-                st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=st.session_state.get('llm_ollama_num_predict', -1), disabled=st.session_state['is_analyzed'])
+                if st.session_state['llm_ollama_num_predict'] is None:
+                    st.session_state['llm_ollama_num_predict'] = int(get_max_value_of_model_num_predict(st.session_state['selected_llm']) / 2)
+                    if st.session_state['llm_ollama_num_predict'] < 128:
+                        st.session_state['llm_ollama_num_predict'] = 128
+                st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=st.session_state['llm_ollama_num_predict'], disabled=st.session_state['is_analyzed'])
 
         ### Set OpenAI API Key
         if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
@@ -550,33 +570,33 @@ def main():
         if st.session_state['selected_ai'] == "OpenAI":
             st.session_state['llm'] = ChatOpenAI(
                 base_url = os.environ["OPENAI_BASE_URL"],
-                model = st.session_state.get('selected_llm', "gpt-3.5-turbo"),
-                temperature = st.session_state.get('temperature', 0.00),
+                model = st.session_state['selected_llm'],
+                temperature = st.session_state['temperature'],
                 cache = False,
                 streaming = False,
-                presence_penalty = st.session_state.get('llm_openai_presence_penalty', 1.00),
-                frequency_penalty = st.session_state.get('llm_openai_frequency_penalty', 1.00),
+                presence_penalty = st.session_state['llm_openai_presence_penalty'],
+                frequency_penalty = st.session_state['llm_openai_frequency_penalty'],
                 stream_usage = False,
                 n = 1,
-                top_p = st.session_state.get('llm_top_p', 0.50),
-                max_tokens = st.session_state.get('llm_openai_max_tokens', 1024),
+                top_p = st.session_state['llm_top_p'],
+                max_tokens = st.session_state['llm_openai_max_tokens'],
                 verbose = True,
             )
         else:
             st.session_state['llm'] = OllamaLLM(
                 base_url = os.environ["OLLAMA_BASE_URL"],
-                model = st.session_state.get('selected_llm', "gemma2:9b"),
-                temperature = st.session_state.get('temperature', 0.00),
+                model = st.session_state['selected_llm'],
+                temperature = st.session_state['temperature'],
                 cache = False,
-                num_ctx = st.session_state.get('llm_ollama_num_ctx', 1024),
-                num_predict = st.session_state.get('llm_ollama_num_predict', -1),
+                num_ctx = st.session_state['llm_ollama_num_ctx'],
+                num_predict = st.session_state['llm_ollama_num_predict'],
                 # num_gpu = None,
                 # num_thread = None,
                 # repeat_last_n = None,
-                repeat_penalty = st.session_state.get('llm_ollama_repeat_penalty', 1.00),
+                repeat_penalty = st.session_state['llm_ollama_repeat_penalty'],
                 # tfs_z = None,
                 # top_k = None,
-                top_p = st.session_state.get('llm_top_p', 0.80),
+                top_p = st.session_state['llm_top_p'],
                 # format = "", # Literal['', 'json'] (default: "")
                 verbose = True,
             )
@@ -901,9 +921,9 @@ def main():
             rag_contexts = result.get('context', [])
             
             ### Debugging Print
-            # print("<RAG 데이터>")
+            # print("<<< RAG Context 데이터 >>>")
             # for context in rag_contexts:
-            #     print(context)
+            #     print(f"[DEBUG] (context) {context}\n")
 
             llm_model_name = get_llm_model_name()
 
@@ -1009,7 +1029,7 @@ def main():
                         for context in st.session_state['rag_history_rag_contexts'][i]:
                             st.write(context)
                     else:
-                        st.write("No Contexts")
+                        st.write(f"No relevant docs were retrieved using the relevance score threshold {rag_score_threshold}")
 
 #-----------------------------------------------------------------------
 

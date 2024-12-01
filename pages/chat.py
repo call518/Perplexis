@@ -42,9 +42,10 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from langchain_ollama import OllamaLLM
 
-### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
+### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생) --> langchain_ollama.embeddings 으로 정상화 테스트 중...
 # from langchain_ollama import OllamaEmbeddings
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama.embeddings import OllamaEmbeddings
+# from langchain_community.embeddings import OllamaEmbeddings
 
 from langchain.prompts import (
     ChatPromptTemplate,
