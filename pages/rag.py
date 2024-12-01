@@ -187,6 +187,9 @@ default_values = {
     'selected_embedding_dimension': None,
     'vectorstore_type': None,
     'pgvector_connection': None,
+    'pinecone_similarity': None,
+    'chromadb_similarity': None,
+    'pgvector_similarity': None,
     'selected_ai': None,
     'selected_llm': None,
     'temperature': 0.00,
@@ -197,7 +200,7 @@ default_values = {
     'chromadb_root_reset': True,
     'pgvector_db_reset': True,
     'rag_search_type': None,
-    'rag_score_threshold': 0.60,
+    'rag_score_threshold': 0.50,
     'rag_top_k': None,
     'rag_fetch_k': None,
     'rag_lambda_mult': None,
@@ -419,19 +422,21 @@ def main():
     
         if st.session_state['vectorstore_type'] == "ChromaDB":
             st.session_state['chromadb_root_reset'] = st.checkbox("Reset ChromaDB", value=st.session_state.get('chromadb_root_reset', True), disabled=st.session_state['is_analyzed'])
+            st.session_state['chromadb_similarity'] = st.selectbox("ChromaDB Similarity", ["cosine", "l2", "ip"], index=0, disabled=st.session_state['is_analyzed'])
+
 
         if st.session_state['vectorstore_type'] == "PGVector":
             st.session_state['pgvector_db_reset'] = st.checkbox("Reset PGVector", value=st.session_state.get('pgvector_db_reset', True), disabled=st.session_state['is_analyzed'])
 
             if st.session_state['pgvector_connection'] is None:
                 st.session_state['pgvector_connection'] = f"postgresql+psycopg://{os.environ['PGVECTOR_USER']}:{os.environ['PGVECTOR_PASS']}@{os.environ['PGVECTOR_HOST']}:{os.environ['PGVECTOR_PORT']}/perplexis"
-                
             st.session_state['pgvector_connection'] = st.text_input("PGVector Connection", value=st.session_state['pgvector_connection'], type="password",  disabled=st.session_state['is_analyzed'])
+            st.session_state['pgvector_similarity'] = st.selectbox("PGVector Similarity", ["cosine", "euclidean", "dotproduct"], index=0, disabled=st.session_state['is_analyzed'])
     
         if st.session_state['vectorstore_type'] == "Pinecone":
             os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
             st.session_state['pinecone_index_reset'] = st.checkbox("Reset Pinecone Index", value=st.session_state.get('pinecone_index_reset', False), disabled=st.session_state['is_analyzed'])
-            st.session_state['pinecone_metric'] = st.selectbox("Pinecone Metric", ["cosine", "euclidean", "dotproduct"], disabled=st.session_state['is_analyzed'])
+            st.session_state['pinecone_similarity'] = st.selectbox("Pinecone Similarity", ["cosine", "l2", "inner"], index=0, disabled=st.session_state['is_analyzed'])
 
         ### Embeddings 모델 선택/설정
         if st.session_state['selected_embedding_provider'] == "OpenAI":
@@ -480,7 +485,7 @@ def main():
             with col_rag_arg1:
                 st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])        
             with col_rag_arg2:
-                st.session_state['rag_score_threshold'] = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_score_threshold'] = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.50, step=0.05, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "similarity":
             st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "mmr":
@@ -490,7 +495,7 @@ def main():
             with col_rag_arg2:
                 st.session_state['rag_fetch_k'] = st.number_input("MMR Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
             with col_rag_arg3:
-                st.session_state['rag_lambda_mult'] = st.number_input("MMR Lambda Mult", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_lambda_mult'] = st.number_input("MMR Lambda Mult", min_value=0.01, max_value=1.00, value=0.50, step=0.05, disabled=st.session_state['is_analyzed'])
 
         ### LLM 모델 설정
         col_llm_top_p, col_repeat_penalty = st.sidebar.columns(2)
@@ -722,7 +727,7 @@ def main():
                         pc.create_index(
                             name = pinecone_index_name,
                             dimension = st.session_state.get('selected_embedding_dimension', None),
-                            metric = st.session_state['pinecone_metric'],
+                            metric = st.session_state['pinecone_similarity'],
                             spec = ServerlessSpec(
                                 cloud='aws',
                                 region='us-east-1'
@@ -748,7 +753,8 @@ def main():
                         ### collection_metadata 문서 --> https://docs.trychroma.com/guides#changing-the-distance-function
                         # collection_metadata={"hnsw:space": "l2"},
                         # collection_metadata={"hnsw:space": "ip"},
-                        collection_metadata={"hnsw:space": "cosine"},
+                        # collection_metadata={"hnsw:space": "cosine"},
+                        collection_metadata={"hnsw:space": st.session_state['chromadb_similarity']},
                         persist_directory = f"{chromadb_dir_path}",
                     )
                     
@@ -766,7 +772,8 @@ def main():
                         ### "distance_strategy" : Should be one of l2, cosine, inner.
                         # distance_strategy = "l2",
                         # distance_strategy = "inner",
-                        distance_strategy = "cosine",
+                        # distance_strategy = "cosine",
+                        distance_strategy = st.session_state['pgvector_similarity'],
                         use_jsonb=True,
                     )
                     
@@ -930,7 +937,7 @@ def main():
                 else:
                     rag_score_threshold = None
                 
-                #st.write(f"Embeddings: {st.session_state.get('selected_embedding_provider', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['rag_history_rag_contexts'][-1])} / Pinecone Metric: {st.session_state.get('pinecone_metric', 'Unknown')}")
+                #st.write(f"Embeddings: {st.session_state.get('selected_embedding_provider', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['rag_history_rag_contexts'][-1])} / Pinecone Similarity: {st.session_state.get('pinecone_similarity', 'Unknown')}")
                 #st.write(f"RAG Top-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score_threshold', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
 
                 # st.markdown(f"""
@@ -940,7 +947,7 @@ def main():
                 #         - <b>LLM</b>: {llm_model_name}<br>
                 #         - <b>Temperature</b>: {temperature}<br>
                 #         - <b>RAG Contexts</b>: {len(st.session_state['rag_history_rag_contexts'][-1])}<br>
-                #         - <b>Pinecone Metric</b>: {st.session_state.get('pinecone_metric', 'Unknown')}<br>
+                #         - <b>Pinecone Similarity</b>: {st.session_state.get('pinecone_similarity', 'Unknown')}<br>
                 #         - <b>RAG Top-K</b>: {rag_top_k}<br>
                 #         - <b>RAG Search Type</b>: {rag_search_type}<br>
                 #         - <b>RAG Score</b>: {st.session_state.get('rag_score_threshold', 'Unknown')}<br>
@@ -970,7 +977,7 @@ def main():
                             - <b>LLM Args(Ollama) repeat_penalty</b>: <font color=black>{st.session_state.get('llm_ollama_repeat_penalty', None)}</font><br>
                             - <b>LLM Args(Ollama) num_ctx</b>: <font color=black>{st.session_state.get('llm_ollama_fnum_ctx', None)}</font><br>
                             - <b>LLM Args(Ollama) num_predict</b>: <font color=black>{st.session_state.get('llm_ollama_num_predict', None)}</font><br>
-                            - <b>Pinecone Metric</b>: <font color=black>{st.session_state.get('pinecone_metric', None)}</font><br>
+                            - <b>Pinecone Similarity</b>: <font color=black>{st.session_state.get('pinecone_similarity', None)}</font><br>
                             - <b>RAG Contexts</b>: <font color=black>{len(st.session_state['rag_history_rag_contexts'][-1])}</font><br>
                             - <b>RAG Top-K</b>: <font color=black>{rag_top_k}</font><br>
                             - <b>RAG Search Type</b>: <font color=black>{rag_search_type}</font><br>
