@@ -45,11 +45,11 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         "all-minilm:22m": 384,
         "all-minilm:33m": 384,
         "nomic-embed-text": 768,
-        "mxbai-embed-large": 1024, 
-        "gemma2:2b": 2304, 
-        "gemma2:9b": 3584, 
-        "gemma2:27b": 4608, 
-        "llama3:8b": 4096, 
+        "mxbai-embed-large": 1024,
+        "gemma2:2b": 2304,
+        "gemma2:9b": 3584,
+        "gemma2:27b": 4608,
+        "llama3:8b": 4096,
     }
     return embedding_dimensions.get(model_name)
 
