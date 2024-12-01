@@ -42,7 +42,8 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from langchain_ollama import OllamaLLM
 
-### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생) --> langchain_ollama.embeddings 으로 정상화 테스트 중...
+### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
+### --> langchain_ollama.embeddings 으로 정상화 테스트 중...
 # from langchain_ollama import OllamaEmbeddings
 from langchain_ollama.embeddings import OllamaEmbeddings
 # from langchain_community.embeddings import OllamaEmbeddings
@@ -76,6 +77,7 @@ from googlesearch import search
 
 import os
 import shutil
+import fitz
 import requests
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -159,9 +161,66 @@ def get_remote_ip() -> str:
     return session_info.request.remote_ip
 
 # Initialize session state with default values
+# default_values = {
+#     'ai_role': None,
+#     'system_prompt_content': None,
+#     'chat_memory': None,
+#     'chat_conversation': None,
+#     'chat_response': None,
+#     'session_id': str(uuid.uuid4()),
+#     'client_remote_ip' : get_remote_ip(),
+#     'is_analyzed': False,
+#     'document_type': None,
+#     'document_source': [],
+#     'documents_chunks': [],
+#     'embedding_instance': None,
+#     'llm': None,
+#     'llm_top_p': 0.80,
+#     'llm_openai_presence_penalty': 0.00,
+#     'llm_openai_frequency_penalty': 1.00,
+#     'llm_openai_max_tokens': 1024,
+#     'llm_openai_max_tokens_fix': 1024,
+#     'llm_ollama_repeat_penalty': 1.00,
+#     'llm_ollama_num_ctx': 1024,
+#     'llm_ollama_num_ctx_fix': 1024,
+#     'llm_ollama_num_predict': -1,
+#     'selected_embedding_provider': None,
+#     'selected_embedding_model': None,
+#     'selected_embedding_dimension': None,
+#     'vectorstore_type': "pinecone",
+#     'selected_ai': None,
+#     'selected_llm': None,
+#     'temperature': 0.80,
+#     'chunk_size': None,
+#     'chunk_overlap': None,
+#     'retriever': None,
+#     'pinecone_index_reset': True,
+#     'chromadb_root_reset': True,
+#     'rag_search_type': None,
+#     'rag_score': 0.01,
+#     'rag_top_k': None,
+#     'rag_fetch_k': None,
+#     'rag_lambda_mult': None,
+#     'google_search_query': None,
+#     'google_custom_urls': None,
+#     'google_search_result_count': None,
+#     'google_search_doc_lang': None,
+#     'rag_history_user': [],
+#     'rag_history_ai': [],
+#     'rag_history_llm_model_name': [],
+#     'rag_history_rag_contexts': [],
+#     'rag_history_temperature': [],
+#     'rag_history_rag_search_type': [],
+#     'rag_history_rag_top_k': [],
+#     'rag_history_rag_score': [],
+#     'rag_history_rag_fetch_k': [],
+#     'rag_history_rag_rag_lambda_mult': [],
+#     'store': {},
+# }
+
 default_values = {
     'ai_role': None,
-    'system_prompt_content': None,
+    'system_prompt_ai_role': None,
     'chat_memory': None,
     'chat_conversation': None,
     'chat_response': None,
@@ -173,29 +232,32 @@ default_values = {
     'documents_chunks': [],
     'embedding_instance': None,
     'llm': None,
-    'llm_top_p': 0.80,
+    'llm_top_p': 0.50,
     'llm_openai_presence_penalty': 0.00,
     'llm_openai_frequency_penalty': 1.00,
     'llm_openai_max_tokens': 1024,
-    'llm_openai_max_tokens_fix': 1024,
     'llm_ollama_repeat_penalty': 1.00,
-    'llm_ollama_num_ctx': 1024,
-    'llm_ollama_num_ctx_fix': 1024,
-    'llm_ollama_num_predict': -1,
+    'llm_ollama_num_ctx': None,
+    'llm_ollama_num_predict': None,
     'selected_embedding_provider': None,
     'selected_embedding_model': None,
     'selected_embedding_dimension': None,
-    'vectorstore_type': "pinecone",
+    'vectorstore_type': None,
+    'pgvector_connection': None,
+    'pinecone_similarity': None,
+    'chromadb_similarity': None,
+    'pgvector_similarity': None,
     'selected_ai': None,
     'selected_llm': None,
-    'temperature': 0.80,
+    'temperature': 0.01,
     'chunk_size': None,
     'chunk_overlap': None,
     'retriever': None,
     'pinecone_index_reset': True,
     'chromadb_root_reset': True,
+    'pgvector_db_reset': True,
     'rag_search_type': None,
-    'rag_score': 0.01,
+    'rag_score_threshold': 0.50,
     'rag_top_k': None,
     'rag_fetch_k': None,
     'rag_lambda_mult': None,
@@ -210,7 +272,7 @@ default_values = {
     'rag_history_temperature': [],
     'rag_history_rag_search_type': [],
     'rag_history_rag_top_k': [],
-    'rag_history_rag_score': [],
+    'rag_history_rag_score_threshold': [],
     'rag_history_rag_fetch_k': [],
     'rag_history_rag_rag_lambda_mult': [],
     'store': {},

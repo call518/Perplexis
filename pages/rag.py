@@ -250,7 +250,6 @@ url_pattern = re.compile(
 
 ### Google Search 처리, URL 목록 반환
 def google_search(query, num_results=10, lang="ko"):
-    results_list = []
     try:
         if lang == "Any":
             results = search(query, num_results=num_results)
@@ -258,18 +257,20 @@ def google_search(query, num_results=10, lang="ko"):
             results = search(query, num_results=num_results, lang=lang)
         
         if results:
-            for idx, result in enumerate(results, 1):
-                # PDF 링크 제외
-                try:
-                    response = requests.head(result, allow_redirects=True)
-                    if 'application/pdf' not in response.headers.get('Content-Type', ''):
-                        results_list.append(result)
-                        print(f"[DEBUG] (Google Search URLs) {idx}. {result}")
-                    else:
-                        print(f"[DEBUG] (Google Search URLs) {idx}. <PDF Removed> {result}")
-                except Exception as e:
-                    print(f"[ERROR] Failed to check URL {result}: {e}")
-            return results_list
+            # results_list = []
+            # for idx, result in enumerate(results, 1):
+            #     # PDF 링크 제외
+            #     try:
+            #         response = requests.head(result, allow_redirects=True)
+            #         if 'application/pdf' not in response.headers.get('Content-Type', ''):
+            #             results_list.append(result)
+            #             print(f"[DEBUG] (Google Search URLs) {idx}. {result}")
+            #         else:
+            #             print(f"[DEBUG] (Google Search URLs) {idx}. <PDF Removed> {result}")
+            #     except Exception as e:
+            #         print(f"[ERROR] Failed to check URL {result}: {e}")
+            # return results_list
+            return results
         else:
             st.error("No search results found.")
             st.stop
@@ -327,11 +328,13 @@ def is_valid_url(url):
 
 ### 파일 업로드 후, 업로드된 파일 프로세싱
 def read_uri_content(uri, type):
+    ### 단일 Document() 반환
     if type == "FILE-TXT":
         # upload_dir = f"./uploads/{st.session_state['session_id']}"
         loader = TextLoader(uri)
         docs = loader.load()
         # shutil.rmtree(upload_dir)
+    ### 단일 Document() 반환
     if type == "FILE-PDF":
         ### pypdf 모듈을 이용한 PDF 파일 로드
         # loader = PyPDFLoader(f"{upload_dir}/{file}")
@@ -339,14 +342,16 @@ def read_uri_content(uri, type):
         loader = PyMuPDFLoader(uri, extract_images=True)
         docs = loader.load()
         # shutil.rmtree(upload_dir)
-        
+    ### 1개 이상의 Document()로 구성된 List 반환
     if type == "URL-PDF": ### 테스트중... (동작 미확인...)
         res = requests.get(uri)
         contents = fitz.open(stream=res.content, filetype="pdf")
         docs = []
         for page_num in range(contents.page_count):
             page_text = contents.get_page_text(pno=page_num)
-            docs.append(Document(page_content=page_text, metadata={"source": uri, "page": page_num + 1}))
+            docs.append([Document(page_content=page_text, metadata={"source": uri, "page": page_num + 1})])
+        # print(f"==============> {docs[-1]}")
+        # st.stop()
     else:
         st.error("[ERROR] Unsupported file type")
         st.stop()
@@ -669,18 +674,31 @@ def main():
                         st.stop()
                     else:
                         st.session_state['document_source'] = list(dict.fromkeys(st.session_state['document_source']).keys())
+
+                    ### 문서 로드
                     for url in st.session_state['document_source']:
                         print(f"[DEBUG] (Loaded URL) {url}")
-                        loader = WebBaseLoader(
-                            web_paths = (url,),
-                            # bs_kwargs=dict(
-                            #     parse_only=bs4.SoupStrainer(
-                            #         class_=("post-content", "post-title", "post-header")
-                            #     )
-                            # ),
-                            show_progress = True,
-                        )
-                        docs_contents.append(loader.load())
+                        url_head = requests.head(url, allow_redirects=True)
+                        url_content_type = url_head.headers.get('Content-Type', '')
+                        if 'application/pdf' in url_content_type:
+                            doc_pdf_page_list = read_uri_content(url, "URL-PDF")
+                            # for idx, doc in enumerate(doc_pdf_page_list):
+                            #     print(f"------------> Document {idx + 1}:\n{doc}\n")
+                            #     st.stop()
+                            docs_contents.extend(doc_pdf_page_list)
+                        else:
+                            loader = WebBaseLoader(
+                                web_paths = (url,),
+                                # bs_kwargs=dict(
+                                #     parse_only=bs4.SoupStrainer(
+                                #         class_=("post-content", "post-title", "post-header")
+                                #     )
+                                # ),
+                                show_progress = True,
+                            )
+                            docs_contents.append(loader.load())
+                        # print(f"--------------> {docs_contents[0]}")
+                        # st.stop()
 
                 ### 문서 내용 정리 (빈 줄 제거)
                 if st.session_state['document_type'] == "Google Search":
