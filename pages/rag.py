@@ -249,13 +249,15 @@ url_pattern = re.compile(
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 ### Google Search 처리, URL 목록 반환
-def google_search(query, num_results=10, lang="ko"):
+def google_search(query, num_results=10, lang="Any"):
     try:
+        results = []
         if lang == "Any":
             results = search(query, num_results=num_results)
         else:
             results = search(query, num_results=num_results, lang=lang)
         
+        ### 결과 처리
         if results:
             # results_list = []
             # for idx, result in enumerate(results, 1):
