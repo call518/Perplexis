@@ -26,6 +26,7 @@ from streamlit.runtime.scriptrunner import get_script_run_ctx
 import uuid
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import ConversationalRetrievalChain
 
 from langchain_community.chat_message_histories import ChatMessageHistory
 

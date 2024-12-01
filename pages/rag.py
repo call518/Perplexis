@@ -28,6 +28,7 @@ from streamlit.runtime.scriptrunner import get_script_run_ctx
 import uuid
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import ConversationalRetrievalChain
 
 from langchain_community.chat_message_histories import ChatMessageHistory
 
@@ -469,9 +470,9 @@ def main():
 
         col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
         with col_chunk_size:
-            st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=100, max_value=5000, value=1000, step=100, disabled=st.session_state['is_analyzed'])
+            st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=100, max_value=5000, value=500, step=100, disabled=st.session_state['is_analyzed'])
         with col_chunk_overlap:
-            st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=50, max_value=1000, value=100, step=100, disabled=st.session_state['is_analyzed'])
+            st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=50, max_value=500, value=100, step=100, disabled=st.session_state['is_analyzed'])
             if not (st.session_state['chunk_size'] >= (st.session_state['chunk_overlap'] * 2)):
                 st.error("Chunk Overlap must be less than Chunk Size.")
                 st.stop()
@@ -781,15 +782,24 @@ def main():
 
                 # 주어진 문서 내용 처리(임베딩)
                 if st.session_state['rag_search_type'] == "similarity_score_threshold":
-                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "score_threshold": float(st.session_state['rag_score_threshold'])}
+                    search_kwargs = {
+                        "k": int(st.session_state['rag_top_k']),
+                        "score_threshold": float(st.session_state['rag_score_threshold'])
+                    }
                 elif st.session_state['rag_search_type'] == "similarity":
-                    search_kwargs = {"k": int(st.session_state['rag_top_k'])}
+                    search_kwargs = {
+                        "k": int(st.session_state['rag_top_k'])
+                    }
                 elif st.session_state['rag_search_type'] == "mmr":
-                    search_kwargs = {"k": int(st.session_state['rag_top_k']), "fetch_k": int(st.session_state['rag_fetch_k']), "lambda_mult": float(st.session_state['rag_lambda_mult'])}
+                    search_kwargs = {
+                        "k": int(st.session_state['rag_top_k']),
+                        "fetch_k": int(st.session_state['rag_fetch_k']),
+                        "lambda_mult": float(st.session_state['rag_lambda_mult'])
+                    }
 
                 st.session_state['retriever'] = vectorstore.as_retriever(
                     search_type=st.session_state['rag_search_type'],
-                    search_kwargs=search_kwargs
+                    search_kwargs=search_kwargs,
                 )
                 
                 if st.session_state['retriever']:
