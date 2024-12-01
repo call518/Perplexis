@@ -682,7 +682,12 @@ def main():
                     ### 문서 로드
                     for url in st.session_state['document_source']:
                         print(f"[DEBUG] (Loaded URL) {url}")
-                        url_head = requests.head(url, allow_redirects=True)
+                        try:
+                            url_head = requests.head(url, allow_redirects=True)
+                        except requests.RequestException as e:
+                            print(f"[ERROR] Failed to connect to URL {url}: {e}")
+                            print(f"[INFO] Skipping URL {url} and continuing with the next one.")
+                            continue
                         url_content_type = url_head.headers.get('Content-Type', '')
                         if 'application/pdf' in url_content_type:
                             doc_pdf_page_list = read_uri_content(url, "URL-PDF")
