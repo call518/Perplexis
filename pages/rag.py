@@ -728,19 +728,19 @@ def main():
                             page_content=doc.page_content,
                             metadata={"id": i + 1, "source": st.session_state['document_source'][i // len(splits) * len(st.session_state['document_source'])]}
                         )
-                        st.session_state.get('documents_chunks', []).append(document)
+                        st.session_state['documents_chunks'].append(document)
                 else:
                     for i, doc in enumerate(splits):
                         document = Document(
                             page_content=doc.page_content,
                             metadata={"id": i + 1, "source": st.session_state['document_source'][0]}
                         )
-                        st.session_state.get('documents_chunks', []).append(document)
+                        st.session_state['documents_chunks'].append(document)
 
                 ### Debugging Print
-                print(f"[DEBUG] (chunks) {len(st.session_state.get('documents_chunks', []))}")
+                print(f"[DEBUG] (chunks) {len(st.session_state['documents_chunks'])}")
                 
-                st.write(f"Documents Chunks: {len(st.session_state.get('documents_chunks', []))}")
+                st.write(f"Documents Chunks: {len(st.session_state['documents_chunks'])}")
 
                 if st.session_state['vectorstore_type'] == "Pinecone":
                     # Pinecone 관련 설정
@@ -780,7 +780,7 @@ def main():
 
                     # Pinecone Embedding 처리
                     vectorstore = PineconeVectorStore.from_documents(
-                        documents = st.session_state.get('documents_chunks', []),
+                        documents = st.session_state['documents_chunks'],
                         embedding = st.session_state['embedding_instance'],
                         index_name = pinecone_index_name
                     )
@@ -792,7 +792,7 @@ def main():
                         reset_chromadb(chromadb_dir_path)
                     
                     vectorstore = Chroma.from_documents(
-                        documents = st.session_state.get('documents_chunks', []),
+                        documents = st.session_state['documents_chunks'],
                         embedding = st.session_state['embedding_instance'],
                         ### collection_metadata 문서 --> https://docs.trychroma.com/guides#changing-the-distance-function
                         # collection_metadata={"hnsw:space": "l2"},
@@ -821,7 +821,7 @@ def main():
                         use_jsonb=True,
                     )
                     
-                    vectorstore.add_documents(st.session_state.get('documents_chunks', []), ids=[doc.metadata["id"] for doc in st.session_state.get('documents_chunks', [])])
+                    vectorstore.add_documents(st.session_state['documents_chunks'], ids=[doc.metadata["id"] for doc in st.session_state['documents_chunks']])
 
                 # 주어진 문서 내용 처리(임베딩)
                 if st.session_state['rag_search_type'] == "similarity_score_threshold":
@@ -1016,7 +1016,7 @@ def main():
                             - <b>Embedding Type</b>: <font color=black>{st.session_state.get('selected_embedding_provider', 'Unknown Embedding Type')}</font><br>
                             - <b>Embedding Model</b>: <font color=black>{st.session_state.get('selected_embedding_model', 'Unknown Embedding Model')}</font><br>
                             - <b>Embedding Dimension</b>: <font color=black>{st.session_state.get('selected_embedding_dimension', 'Unknown Embedding Dimension')}</font><br>
-                            - <b>Chunk-Count</b>: <font color=black>{len(st.session_state.get('documents_chunks', []))}</font><br>
+                            - <b>Chunk-Count</b>: <font color=black>{len(st.session_state.get('documents_chunks', None))}</font><br>
                             - <b>Chunk-Size</b>: <font color=black>{st.session_state.get('chunk_size', None)}</font><br>
                             - <b>Chunk-Overlap</b>: <font color=black>{st.session_state.get('chunk_overlap', None)}</font><br>
                             - <b>VectorDB Type</b>: <font color=black>{st.session_state.get('vectorstore_type', None)}</font><br>
