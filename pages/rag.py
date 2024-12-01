@@ -81,6 +81,7 @@ from googlesearch import search
 
 import os
 import shutil
+import fitz
 import requests
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -325,21 +326,30 @@ def is_valid_url(url):
 # pinecone_index_name = 'perplexis'
 
 ### 파일 업로드 후, 업로드된 파일 프로세싱
-def read_txt(file):
-    # upload_dir = f"./uploads/{st.session_state['session_id']}"
-    loader = TextLoader(f"{upload_dir}/{file}")
-    docs = loader.load()
-    # shutil.rmtree(upload_dir)
-    return docs
-
-### 파일 업로드 후, 업로드된 파일 프로세싱
-def read_pdf(file):
-    ### pypdf 모듈을 이용한 PDF 파일 로드
-    # loader = PyPDFLoader(f"{upload_dir}/{file}")
-    ### pymupdf 모듈을 이용한 PDF 파일 로드
-    loader = PyMuPDFLoader(f"{upload_dir}/{file}", extract_images=True)
-    docs = loader.load()
-    # shutil.rmtree(upload_dir)
+def read_uri_content(uri, type):
+    if type == "FILE-TXT":
+        # upload_dir = f"./uploads/{st.session_state['session_id']}"
+        loader = TextLoader(uri)
+        docs = loader.load()
+        # shutil.rmtree(upload_dir)
+    if type == "FILE-PDF":
+        ### pypdf 모듈을 이용한 PDF 파일 로드
+        # loader = PyPDFLoader(f"{upload_dir}/{file}")
+        ### pymupdf 모듈을 이용한 PDF 파일 로드
+        loader = PyMuPDFLoader(uri, extract_images=True)
+        docs = loader.load()
+        # shutil.rmtree(upload_dir)
+        
+    if type == "URL-PDF": ### 테스트중... (동작 미확인...)
+        res = requests.get(uri)
+        contents = fitz.open(stream=res.content, filetype="pdf")
+        docs = []
+        for page_num in range(contents.page_count):
+            page_text = contents.get_page_text(pno=page_num)
+            docs.append(Document(page_content=page_text, metadata={"source": uri, "page": page_num + 1}))
+    else:
+        st.error("[ERROR] Unsupported file type")
+        st.stop()
     return docs
 
 #--------------------------------------------------
@@ -461,7 +471,7 @@ def main():
             # mxbai-embed-large: dimension=1024 (State-of-the-art large embedding model from mixedbread.ai) ("num_ctx": 512)
             # nomic-embed-text: dimension=768 (A high-performing open embedding model with a large token context window.) ("num_ctx": 8192)
             # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
-            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "llama3:8b"], index=0,  disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b"], index=0,  disabled=st.session_state['is_analyzed'])
 
         st.session_state['selected_embedding_dimension'] = get_max_value_of_model_embedding_dimensions(st.session_state.get('selected_embedding_model', None))
         print(f"[DEBUG] (selected_embedding_model) {st.session_state.get('selected_embedding_model', None)}")
@@ -615,6 +625,19 @@ def main():
                     if not is_valid_url(st.session_state['document_source'][0]):
                         st.error("[ERROR] Invalid URL.")
                         st.stop()
+                        
+                    # # URL이 PDF 또는 TXT 파일인지 확인 (테스트중...)
+                    # response = requests.head(st.session_state['document_source'][0], allow_redirects=True)
+                    # content_type = response.headers.get('Content-Type', '')
+
+                    # if 'application/pdf' in content_type:
+                    #     docs_contents = read_uri_content(st.session_state['document_source'][0], "URL-PDF")
+                    # elif 'text/plain' in content_type:
+                    #     docs_contents = read_uri_content(st.session_state['document_source'][0], "FILE-TXT")
+                    # else:
+                    #     st.error("[ERROR] Unsupported URL content type")
+                    #     st.stop()
+                    
                     # 문서 로드 및 분할
                     loader = WebBaseLoader(
                         web_paths = (st.session_state['document_source'][0],),
@@ -630,9 +653,9 @@ def main():
                 if st.session_state['document_type'] == "File Upload":
                     if uploaded_file is not None:
                         if uploaded_file.type == "application/pdf":
-                            docs_contents = read_pdf(uploaded_file.name)
+                            docs_contents = read_uri_content(f"{upload_dir}/{uploaded_file.name}", "FILE-PDF")
                         elif uploaded_file.type == "text/plain":
-                            docs_contents = read_txt(uploaded_file.name)
+                            docs_contents = read_uri_content(f"{upload_dir}/{uploaded_file.name}", "FILE-TXT")
                         else:
                             st.error("[ERROR] Unsupported file type")
                             st.stop()               
