@@ -251,7 +251,6 @@ url_pattern = re.compile(
 ### Google Search 처리, URL 목록 반환
 def google_search(query, num_results=10, lang="Any"):
     try:
-        results = []
         if lang == "Any":
             results = search(query, num_results=num_results)
         else:
@@ -259,7 +258,7 @@ def google_search(query, num_results=10, lang="Any"):
         
         ### 결과 처리
         if results:
-            # results_list = []
+            results_list = []
             # for idx, result in enumerate(results, 1):
             #     # PDF 링크 제외
             #     try:
@@ -272,7 +271,10 @@ def google_search(query, num_results=10, lang="Any"):
             #     except Exception as e:
             #         print(f"[ERROR] Failed to check URL {result}: {e}")
             # return results_list
-            return results
+            for idx, result in enumerate(results, 1):
+                results_list.append(result)
+                print(f"[DEBUG] (Google Search URLs) {idx}. {result}")
+            return results_list
         else:
             st.error("No search results found.")
             st.stop
