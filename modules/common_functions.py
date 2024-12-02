@@ -10,14 +10,14 @@ def get_max_value_of_model_max_tokens(model_name):
 
 def get_max_value_of_model_num_predict(model_name):
     ditc = {
-        "gemma2:2b": 2048,
-        "gemma2:9b": 4096,
-        "gemma2:27b": 8192,
-        "mistral:7b": 8192,
-        "llama3.2:1b": 2048,
-        "llama3.2:3b": 2048,
-        "codegemma:2b": 4096,
-        "codegemma:7b": 8192,
+        "gemma2:2b": 8192,
+        "gemma2:9b": 16384,
+        "gemma2:27b": 32768,
+        "mistral:7b": 32768,
+        "llama3.2:1b": 8192,
+        "llama3.2:3b": 8192,
+        "codegemma:2b": 16384,
+        "codegemma:7b": 32768,
     }
     return ditc.get(model_name, 128)
 
