@@ -13,6 +13,7 @@ from modules.common_functions import get_ai_role_and_sysetm_prompt
 from modules.common_functions import get_country_name_by_code
 from modules.common_functions import get_max_value_of_model_max_tokens
 from modules.common_functions import get_max_value_of_model_num_ctx
+from modules.common_functions import get_max_value_of_model_num_predict
 from modules.common_functions import get_max_value_of_model_embedding_dimensions
 
 #--------------------------------------------------
@@ -384,7 +385,7 @@ def main():
     with st.sidebar:
         st.title("Parameters")
 
-        st.session_state['ai_role'] = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=0)
+        st.session_state['ai_role'] = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=2)
 
         st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
         
@@ -425,9 +426,11 @@ def main():
         if st.session_state.get('selected_ai', "Ollama") == "Ollama":
             col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
             with col_llm_ollama_num_ctx:
-                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=1024, max_value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=256, max_value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), value=int(get_max_value_of_model_num_ctx(st.session_state['selected_llm']) / 2), step=512, disabled=st.session_state['is_analyzed'])
+                print(f"[DEBUG] (llm_ollama_num_ctx) {st.session_state['llm_ollama_num_ctx']}")
             with col_llm_ollama_num_predict:
-                st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=st.session_state.get('llm_ollama_num_predict', -1), disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=int(get_max_value_of_model_num_predict(st.session_state['selected_llm']) / 2), disabled=st.session_state['is_analyzed'])
+                print(f"[DEBUG] (llm_ollama_num_predict) {st.session_state['llm_ollama_num_predict']}")
 
         ### Set OpenAI API Key
         if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
