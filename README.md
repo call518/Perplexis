@@ -1,5 +1,7 @@
 # Perplexis
 
+[Email to JungJungIn](mailto:call518@gmail.com)
+
 `Perplexis` is Private AI Search Engine (like Perplexity)
 
 ## RAG & Chat Application Guide
