@@ -146,7 +146,6 @@ def get_remote_ip() -> str:
 # Initialize session state with default values
 default_values = {
     'ai_role': None,
-    'system_prompt_ai_role': None,
     'chat_memory': None,
     'chat_conversation': None,
     'chat_response': None,

@@ -1,9 +1,3 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval googlesearch-python chromadb pysqlite3-binary pypdf pymupdf rapidocr-onnxruntime langchain-experimental
-# pip list --format=freeze > requirements.txt (또는 pip freeze > requirements.txt)
-
-### (임시) pysqlite3 설정 - sqlite3 모듈을 pysqlite3로 대체
-### pip install pysqlite3-binary 필요
-### "Your system has an unsupported version of sql requires sqlite3 >= 3.35.0." 오류 해결 목적
 __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
@@ -93,51 +87,29 @@ st.title(":books: _:red[Perplexis]_ Chat")
 ### 1. secretes.toml 파일에 설정된 KEY 값이 최우선 적용.
 ### 2. secretes.toml 파일에 설정된 KEY 값이 없을 경우, os.environ 환경변수로 설정된 KEY 값이 적용.
 ### 3. secretes.toml 파일과 os.environ 환경변수 모두 설정되지 않은 경우, Default 값을 적용.
-if st.secrets["KEYS"].get("OLLAMA_BASE_URL"):
-    os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL")
-elif not os.environ.get("OLLAMA_BASE_URL"):
-    os.environ["OLLAMA_BASE_URL"] = "http://localhost:11434"
+def set_env_vars():
+    env_map = {
+        "OLLAMA_BASE_URL": {"secret_key": "OLLAMA_BASE_URL", "default_value": "http://localhost:11434"},
+        "OPENAI_BASE_URL": {"secret_key": "OPENAI_BASE_URL", "default_value": "https://api.openai.com/v1"},
+        "OPENAI_API_KEY": {"secret_key": "OPENAI_API_KEY", "default_value": ""},
+        "PINECONE_API_KEY": {"secret_key": "PINECONE_API_KEY", "default_value": ""},
+        "PGVECTOR_HOST": {"secret_key": "PGVECTOR_HOST", "default_value": "localhost"},
+        "PGVECTOR_PORT": {"secret_key": "PGVECTOR_PORT", "default_value": "5432"},
+        "PGVECTOR_USER": {"secret_key": "PGVECTOR_USER", "default_value": "perplexis"},
+        "PGVECTOR_PASS": {"secret_key": "PGVECTOR_PASS", "default_value": "changeme"},
+        "LANGCHAIN_API_KEY": {"secret_key": "LANGCHAIN_API_KEY", "default_value": ""},
+    }
+    for k, v in env_map.items():
+        if st.secrets["KEYS"].get(v["secret_key"]):
+            os.environ[k] = st.secrets["KEYS"].get(v["secret_key"])
+        elif not os.environ.get(k):
+            os.environ[k] = v["default_value"]
 
-if st.secrets["KEYS"].get("OPENAI_BASE_URL"):
-    os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OPENAI_BASE_URL")
-elif not os.environ.get("OPENAI_BASE_URL"):
-    os.environ["OPENAI_BASE_URL"] = "https://api.openai.com/v1"
+set_env_vars()
 
-if st.secrets["KEYS"].get("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY")
-elif not os.environ.get("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = ""
-
-if st.secrets["KEYS"].get("PINECONE_API_KEY"):
-    os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY")
-elif not os.environ.get("PINECONE_API_KEY"):
-    os.environ["PINECONE_API_KEY"] = ""
-
-if st.secrets["KEYS"].get("PGVECTOR_HOST"):
-    os.environ["PGVECTOR_HOST"] = st.secrets["KEYS"].get("PGVECTOR_HOST")
-elif not os.environ.get("PGVECTOR_HOST"):
-    os.environ["PGVECTOR_HOST"] = "localhost"
-
-if st.secrets["KEYS"].get("PGVECTOR_PORT"):
-    os.environ["PGVECTOR_PORT"] = st.secrets["KEYS"].get("PGVECTOR_PORT")
-elif not os.environ.get("PGVECTOR_PORT"):
-    os.environ["PGVECTOR_PORT"] = "5432"
-
-if st.secrets["KEYS"].get("PGVECTOR_USER"):
-    os.environ["PGVECTOR_USER"] = st.secrets["KEYS"].get("PGVECTOR_USER")
-elif not os.environ.get("PGVECTOR_USER"):
-    os.environ["PGVECTOR_USER"] = "perplexis"
-
-if st.secrets["KEYS"].get("PGVECTOR_PASS"):
-    os.environ["PGVECTOR_PASS"] = st.secrets["KEYS"].get("PGVECTOR_PASS")
-elif not os.environ.get("PGVECTOR_PASS"):
-    os.environ["PGVECTOR_PASS"] = "changeme"
-
-### (Optional) Langchain API Key 설정
-if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
+if os.environ["LANGCHAIN_API_KEY"]:
     os.environ["LANGCHAIN_TRACING_V2"]= "true"
     os.environ["LANGCHAIN_ENDPOINT"]= "https://api.smith.langchain.com"
-    os.environ["LANGCHAIN_API_KEY"] = st.secrets["KEYS"].get("LANGCHAIN_API_KEY", "")
     os.environ["LANGCHAIN_PROJECT"]= "Perplexis"
 
 # (임시) Session ID값으로 Client IP를 사용 (추후 ID/PW 시스템으로 변경 필요)
@@ -162,76 +134,14 @@ def get_remote_ip() -> str:
     return session_info.request.remote_ip
 
 # Initialize session state with default values
-# default_values = {
-#     'ai_role': None,
-#     'system_prompt_content': None,
-#     'chat_memory': None,
-#     'chat_conversation': None,
-#     'chat_response': None,
-#     'session_id': str(uuid.uuid4()),
-#     'client_remote_ip' : get_remote_ip(),
-#     'is_analyzed': False,
-#     'document_type': None,
-#     'document_source': [],
-#     'documents_chunks': [],
-#     'embedding_instance': None,
-#     'llm': None,
-#     'llm_top_p': 0.80,
-#     'llm_openai_presence_penalty': 0.00,
-#     'llm_openai_frequency_penalty': 1.00,
-#     'llm_openai_max_tokens': 1024,
-#     'llm_openai_max_tokens_fix': 1024,
-#     'llm_ollama_repeat_penalty': 1.00,
-#     'llm_ollama_num_ctx': 1024,
-#     'llm_ollama_num_ctx_fix': 1024,
-#     'llm_ollama_num_predict': -1,
-#     'selected_embedding_provider': None,
-#     'selected_embedding_model': None,
-#     'selected_embedding_dimension': None,
-#     'vectorstore_type': "pinecone",
-#     'selected_ai': None,
-#     'selected_llm': None,
-#     'temperature': 0.80,
-#     'chunk_size': None,
-#     'chunk_overlap': None,
-#     'retriever': None,
-#     'pinecone_index_reset': True,
-#     'chromadb_root_reset': True,
-#     'rag_search_type': None,
-#     'rag_score': 0.01,
-#     'rag_top_k': None,
-#     'rag_fetch_k': None,
-#     'rag_lambda_mult': None,
-#     'google_search_query': None,
-#     'google_custom_urls': None,
-#     'google_search_result_count': None,
-#     'google_search_doc_lang': None,
-#     'rag_history_user': [],
-#     'rag_history_ai': [],
-#     'rag_history_llm_model_name': [],
-#     'rag_history_rag_contexts': [],
-#     'rag_history_temperature': [],
-#     'rag_history_rag_search_type': [],
-#     'rag_history_rag_top_k': [],
-#     'rag_history_rag_score': [],
-#     'rag_history_rag_fetch_k': [],
-#     'rag_history_rag_rag_lambda_mult': [],
-#     'store': {},
-# }
-
 default_values = {
     'ai_role': None,
-    'system_prompt_ai_role': None,
     'chat_memory': None,
     'chat_conversation': None,
     'chat_response': None,
     'session_id': str(uuid.uuid4()),
-    'client_remote_ip' : get_remote_ip(),
+    'client_remote_ip': get_remote_ip(),
     'is_analyzed': False,
-    'document_type': None,
-    'document_source': [],
-    'documents_chunks': [],
-    'embedding_instance': None,
     'llm': None,
     'llm_top_p': 0.50,
     'llm_openai_presence_penalty': 0.00,
@@ -241,42 +151,9 @@ default_values = {
     'llm_ollama_num_ctx': None,
     'llm_ollama_num_predict': None,
     'selected_embedding_provider': None,
-    'selected_embedding_model': None,
-    'selected_embedding_dimension': None,
-    'vectorstore_type': None,
-    'pgvector_connection': None,
-    'pinecone_similarity': None,
-    'chromadb_similarity': None,
-    'pgvector_similarity': None,
     'selected_ai': None,
     'selected_llm': None,
-    'temperature': 0.01,
-    'chunk_size': None,
-    'chunk_overlap': None,
-    'retriever': None,
-    'pinecone_index_reset': True,
-    'chromadb_root_reset': True,
-    'pgvector_db_reset': True,
-    'rag_search_type': None,
-    'rag_score_threshold': 0.50,
-    'rag_top_k': None,
-    'rag_fetch_k': None,
-    'rag_lambda_mult': None,
-    'google_search_query': None,
-    'google_custom_urls': None,
-    'google_search_result_count': None,
-    'google_search_doc_lang': None,
-    'rag_history_user': [],
-    'rag_history_ai': [],
-    'rag_history_llm_model_name': [],
-    'rag_history_rag_contexts': [],
-    'rag_history_temperature': [],
-    'rag_history_rag_search_type': [],
-    'rag_history_rag_top_k': [],
-    'rag_history_rag_score_threshold': [],
-    'rag_history_rag_fetch_k': [],
-    'rag_history_rag_rag_lambda_mult': [],
-    'store': {},
+    'temperature': 0.20,
 }
 
 def init_session_state():
@@ -361,21 +238,16 @@ def is_valid_url(url):
 # pinecone_index_name = 'perplexis'
 
 ### 파일 업로드 후, 업로드된 파일 프로세싱
-def read_txt(file):
-    # upload_dir = f"./uploads/{st.session_state['session_id']}"
-    loader = TextLoader(f"{upload_dir}/{file}")
-    docs = loader.load()
-    # shutil.rmtree(upload_dir)
-    return docs
-
-### 파일 업로드 후, 업로드된 파일 프로세싱
-def read_pdf(file):
-    ### pypdf 모듈을 이용한 PDF 파일 로드
-    # loader = PyPDFLoader(f"{upload_dir}/{file}")
-    ### pymupdf 모듈을 이용한 PDF 파일 로드
-    loader = PyMuPDFLoader(f"{upload_dir}/{file}", extract_images=True)
-    docs = loader.load()
-    # shutil.rmtree(upload_dir)
+def load_docs(file):
+    file_ext = os.path.splitext(file)[1].lower()
+    file_path = f"{upload_dir}/{file}"
+    if file_ext == ".txt":
+        docs = TextLoader(file_path).load()
+    elif file_ext == ".pdf":
+        docs = PyMuPDFLoader(file_path, extract_images=True).load()
+    else:
+        st.error("Unsupported file type.")
+        return []
     return docs
 
 #--------------------------------------------------
