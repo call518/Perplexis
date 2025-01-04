@@ -334,30 +334,22 @@ def is_valid_url(url):
 def read_uri_content(uri, type):
     ### 단일 Document() 반환
     if type == "FILE-TXT":
-        # upload_dir = f"./uploads/{st.session_state['session_id']}"
         loader = TextLoader(uri)
         docs = loader.load()
-        # shutil.rmtree(upload_dir)
     ### 단일 Document() 반환
-    if type == "FILE-PDF":
-        ### pypdf 모듈을 이용한 PDF 파일 로드
-        # loader = PyPDFLoader(f"{upload_dir}/{file}")
-        ### pymupdf 모듈을 이용한 PDF 파일 로드
+    elif type == "FILE-PDF":
         loader = PyMuPDFLoader(uri, extract_images=True)
         docs = loader.load()
-        # shutil.rmtree(upload_dir)
     ### 1개 이상의 Document()로 구성된 List 반환
-    if type == "URL-PDF": ### 테스트중... (동작 미확인...)
+    elif type == "URL-PDF":
         res = requests.get(uri)
         contents = fitz.open(stream=res.content, filetype="pdf")
         docs = []
         for page_num in range(contents.page_count):
             page_text = contents.get_page_text(pno=page_num)
             docs.append([Document(page_content=page_text, metadata={"source": uri, "page": page_num + 1})])
-        # print(f"==============> {docs[-1]}")
-        # st.stop()
     else:
-        st.error("[ERROR] Unsupported file type")
+        st.error("[ERROR] read_uri_content()")
         st.stop()
     return docs
 
@@ -480,7 +472,7 @@ def main():
             # mxbai-embed-large: dimension=1024 (State-of-the-art large embedding model from mixedbread.ai) ("num_ctx": 512)
             # nomic-embed-text: dimension=768 (A high-performing open embedding model with a large token context window.) ("num_ctx": 8192)
             # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
-            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b", "llama3.2:1b", "llama3.2:3b"], index=5,  disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b", "llama3.2:1b", "llama3.2:3b"], index=0,  disabled=st.session_state['is_analyzed'])
 
         st.session_state['selected_embedding_dimension'] = get_max_value_of_model_embedding_dimensions(st.session_state.get('selected_embedding_model', None))
         print(f"[DEBUG] (selected_embedding_model) {st.session_state.get('selected_embedding_model', None)}")
