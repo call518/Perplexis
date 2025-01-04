@@ -256,7 +256,7 @@ def google_search(query, num_results=10, lang="Any"):
             return results_list
         else:
             st.error("No search results found.")
-            st.stop
+            st.stop()
     except Exception as e:
         st.error(f"[ERROR] {e}")
         st.stop()
