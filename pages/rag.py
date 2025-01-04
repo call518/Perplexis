@@ -1,12 +1,3 @@
-# pip install -U langchain-community bs4 langchain_pinecone pinecone-client[grpc] langchain-openai langchain_ollama streamlit-chat streamlit-js-eval googlesearch-python chromadb pysqlite3-binary pypdf pymupdf rapidocr-onnxruntime langchain-experimental langchain_postgres psycopg_binary sqlalchemy
-# pip list --format=freeze > requirements.txt
-# sed -i '/^pip==/d' requirements.txt
-# (Manual Run PGVector Docker)
-# - docker run --name pgsql-pgvectror-perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -d -v pgvector-pgdata:/var/lib/postgresql/data call518/pgvector:pg16-1.0.0
-
-### (임시) pysqlite3 설정 - sqlite3 모듈을 pysqlite3로 대체
-### pip install pysqlite3-binary 필요
-### "Your system has an unsupported version of sql requires sqlite3 >= 3.35.0." 오류 해결 목적
 __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
@@ -96,45 +87,33 @@ st.title(":books: _:red[Perplexis]_ RAG")
 ### 1. secretes.toml 파일에 설정된 KEY 값이 최우선 적용.
 ### 2. secretes.toml 파일에 설정된 KEY 값이 없을 경우, os.environ 환경변수로 설정된 KEY 값이 적용.
 ### 3. secretes.toml 파일과 os.environ 환경변수 모두 설정되지 않은 경우, Default 값을 적용.
-if st.secrets["KEYS"].get("OLLAMA_BASE_URL"):
-    os.environ["OLLAMA_BASE_URL"] = st.secrets["KEYS"].get("OLLAMA_BASE_URL")
-elif not os.environ.get("OLLAMA_BASE_URL"):
-    os.environ["OLLAMA_BASE_URL"] = "http://localhost:11434"
 
-if st.secrets["KEYS"].get("OPENAI_BASE_URL"):
-    os.environ["OPENAI_BASE_URL"] = st.secrets["KEYS"].get("OPENAI_BASE_URL")
-elif not os.environ.get("OPENAI_BASE_URL"):
-    os.environ["OPENAI_BASE_URL"] = "https://api.openai.com/v1"
+def set_env_var_if_not_exists(secret_key_name, env_var_name, default_val=""):
+    """
+    If a certain environment variable is not already set, 
+    this function will attempt to read it from st.secrets["KEYS"][secret_key_name].
+    If it's still not found, it sets it to a specified default value.
+    """
+    if st.secrets["KEYS"].get(secret_key_name):
+        os.environ[env_var_name] = st.secrets["KEYS"].get(secret_key_name)
+    elif not os.environ.get(env_var_name):
+        os.environ[env_var_name] = default_val
 
-if st.secrets["KEYS"].get("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = st.secrets["KEYS"].get("OPENAI_API_KEY")
-elif not os.environ.get("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = ""
+# Use the helper function to set environment variables for OLLAMA
+set_env_var_if_not_exists("OLLAMA_BASE_URL", "OLLAMA_BASE_URL", "http://localhost:11434")
 
-if st.secrets["KEYS"].get("PINECONE_API_KEY"):
-    os.environ["PINECONE_API_KEY"] = st.secrets["KEYS"].get("PINECONE_API_KEY")
-elif not os.environ.get("PINECONE_API_KEY"):
-    os.environ["PINECONE_API_KEY"] = ""
+# Use the helper function to set environment variables for OPENAI
+set_env_var_if_not_exists("OPENAI_BASE_URL", "OPENAI_BASE_URL", "https://api.openai.com/v1")
+set_env_var_if_not_exists("OPENAI_API_KEY", "OPENAI_API_KEY", "")
 
-if st.secrets["KEYS"].get("PGVECTOR_HOST"):
-    os.environ["PGVECTOR_HOST"] = st.secrets["KEYS"].get("PGVECTOR_HOST")
-elif not os.environ.get("PGVECTOR_HOST"):
-    os.environ["PGVECTOR_HOST"] = "localhost"
+# Use the helper function to set environment variables for PINECONE
+set_env_var_if_not_exists("PINECONE_API_KEY", "PINECONE_API_KEY", "")
 
-if st.secrets["KEYS"].get("PGVECTOR_PORT"):
-    os.environ["PGVECTOR_PORT"] = st.secrets["KEYS"].get("PGVECTOR_PORT")
-elif not os.environ.get("PGVECTOR_PORT"):
-    os.environ["PGVECTOR_PORT"] = "5432"
-
-if st.secrets["KEYS"].get("PGVECTOR_USER"):
-    os.environ["PGVECTOR_USER"] = st.secrets["KEYS"].get("PGVECTOR_USER")
-elif not os.environ.get("PGVECTOR_USER"):
-    os.environ["PGVECTOR_USER"] = "perplexis"
-
-if st.secrets["KEYS"].get("PGVECTOR_PASS"):
-    os.environ["PGVECTOR_PASS"] = st.secrets["KEYS"].get("PGVECTOR_PASS")
-elif not os.environ.get("PGVECTOR_PASS"):
-    os.environ["PGVECTOR_PASS"] = "changeme"
+# Use the helper function to set environment variables for PGVector
+set_env_var_if_not_exists("PGVECTOR_HOST", "PGVECTOR_HOST", "localhost")
+set_env_var_if_not_exists("PGVECTOR_PORT", "PGVECTOR_PORT", "5432")
+set_env_var_if_not_exists("PGVECTOR_USER", "PGVECTOR_USER", "perplexis")
+set_env_var_if_not_exists("PGVECTOR_PASS", "PGVECTOR_PASS", "changeme")
 
 ### (Optional) Langchain API Key 설정
 if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
