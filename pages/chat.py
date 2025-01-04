@@ -76,6 +76,7 @@ import fitz
 import requests
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import time
 
 #--------------------------------------------------
 
@@ -154,6 +155,7 @@ default_values = {
     'selected_ai': None,
     'selected_llm': None,
     'temperature': 0.20,
+    'chat_history_elapsed_time': [],
 }
 
 def init_session_state():
@@ -390,21 +392,41 @@ def main():
             
         if submit_button and user_input:
             with st.spinner('Thinking...'):
+                start_time = time.perf_counter()
                 st.session_state['chat_response'] = st.session_state['chat_conversation'].invoke({"question": user_input})
                 # print(f"[DEBUG] (chat_response) {st.session_state['chat_response']}")
+                end_time = time.perf_counter()
+                answer_elapsed_time = end_time - start_time
+                
+                print(f"[DEBUG] (answer_elapsed_time) {answer_elapsed_time} sec")
+                
+                st.session_state['chat_history_elapsed_time'].append(answer_elapsed_time)
 
     ### container_history 처리
     if st.session_state.get('chat_memory', None) is not None:
         with container_history:
+            caht_count = 0
             for message in st.session_state['chat_memory'].chat_memory.messages:
                 if isinstance(message, HumanMessage):
                     with st.chat_message("user"):
                         st.markdown("**<span style='color: blue;'>You</span>**", unsafe_allow_html=True)
                         st.write(message.content)
                 elif isinstance(message, AIMessage):
+                    answer_elapsed_time = st.session_state['chat_history_elapsed_time'][caht_count]
                     with st.chat_message("assistant"):
                         st.markdown(f"**<span style='color: green;'>{st.session_state.get('ai_role', 'Unknown')}</span>**", unsafe_allow_html=True)
                         st.write(message.content)
+                        with st.expander("Show Metadata"):
+                            st.markdown(
+                                f"""
+                                <div style="color: #2E9AFE; border: 1px solid #ddd; padding: 5px; background-color: #f9f9f9; border-radius: 5px; width: 100%;">
+                                    - <b>Elapsed time</b>: <font color=black>{answer_elapsed_time:.0f} sec</font><br>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                            st.write("")
+                    caht_count += 1
 
 #----------------------------------------------------
 

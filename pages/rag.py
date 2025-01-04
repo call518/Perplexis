@@ -76,6 +76,7 @@ import fitz
 import requests
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import time
 
 #--------------------------------------------------
 
@@ -201,6 +202,7 @@ default_values = {
     'rag_history_rag_fetch_k': [],
     'rag_history_rag_rag_lambda_mult': [],
     'store': {},
+    'rag_history_answer_elapsed_time': [],
 }
 
 def init_session_state():
@@ -922,14 +924,18 @@ def main():
 
         if submit_button and user_input:
             with st.spinner('Thinking...'):
+                start_time = time.perf_counter()
                 result = st.session_state['conversational_rag_chain'].invoke(
                     {"input": user_input},
                     config={
                         "configurable": {"session_id": st.session_state['session_id']}
                     },
                 )
+                end_time = time.perf_counter()
+                answer_elapsed_time = end_time - start_time
 
             ### Debugging Print
+            print(f"[DEBUG] (answer_elapsed_time) {answer_elapsed_time} sec")
             print(f"[DEBUG] AI Result: {result}")
             
             ai_response = result['answer']
@@ -957,6 +963,7 @@ def main():
             st.session_state['rag_history_rag_score_threshold'].append(curr_rag_score_threshold)
             st.session_state['rag_history_rag_fetch_k'].append(st.session_state.get('rag_fetch_k', 'Unknown'))
             st.session_state['rag_history_rag_rag_lambda_mult'].append(st.session_state.get('rag_lambda_mult', 'Unknown'))
+            st.session_state['rag_history_answer_elapsed_time'].append(answer_elapsed_time)
 
     ### container_history 처리
     if st.session_state['rag_history_ai']:
@@ -982,6 +989,7 @@ def main():
                     rag_score_threshold = st.session_state['rag_history_rag_score_threshold'][i]
                 else:
                     rag_score_threshold = None
+                answer_elapsed_time = st.session_state['rag_history_answer_elapsed_time'][i]
                 
                 #st.write(f"Embeddings: {st.session_state.get('selected_embedding_provider', 'Unknown Embeddings')} / AI: {st.session_state.get('selected_ai', 'Unknown AI')} / LLM: {llm_model_name} / Temperature: {temperature} / RAG Contexts: {len(st.session_state['rag_history_rag_contexts'][-1])} / Pinecone Similarity: {st.session_state.get('pinecone_similarity', 'Unknown')}")
                 #st.write(f"RAG Top-K: {rag_top_k} / RAG Search Type: {rag_search_type} / RAG Score: {st.session_state.get('rag_score_threshold', 'Unknown')} / RAG Fetch-K: {rag_fetch_k} / RAG Lambda Mult: {rag_lambda_mult}")
@@ -1030,7 +1038,7 @@ def main():
                             - <b>RAG Score</b>: <font color=black>{rag_score_threshold}</font><br>
                             - <b>RAG Fetch-K</b>: <font color=black>{rag_fetch_k}</font><br>
                             - <b>RAG Lambda Mult</b>: <font color=black>{rag_lambda_mult}</font><br>
-                            
+                            - <b>Elapsed time</b>: <font color=black>{answer_elapsed_time:.0f} sec</font><br>
                         </div>
                         """,
                         unsafe_allow_html=True,
