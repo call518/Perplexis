@@ -23,14 +23,14 @@ def get_max_value_of_model_num_predict(model_name):
 
 def get_max_value_of_model_num_ctx(model_name):
     ditc = {
-        "gemma2:2b": 32768,
-        "gemma2:9b": 32768,
-        "gemma2:27b": 32768,
+        "gemma2:2b": 8192,
+        "gemma2:9b": 8192,
+        "gemma2:27b": 8192,
         "mistral:7b": 32768,
         "llama3.2:1b": 131072,
         "llama3.2:3b": 131072,
-        "codegemma:2b": 16384,
-        "codegemma:7b": 16384,
+        "codegemma:2b": 8192,
+        "codegemma:7b": 8192,
     }
     return ditc.get(model_name, 1024)
 

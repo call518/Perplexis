@@ -196,7 +196,7 @@ default_values = {
     'pgvector_similarity': None,
     'selected_ai': None,
     'selected_llm': None,
-    'temperature': 0.01,
+    'temperature': 0.05,
     'chunk_size': None,
     'chunk_overlap': None,
     'retriever': None,
@@ -442,7 +442,7 @@ def main():
         with col_embedding:
             st.session_state['selected_embedding_provider'] = st.radio("**:blue[Embeddings]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
         with col_vectorstore:
-            st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("PGVector", "ChromaDB", "Pinecone"), index=1, disabled=st.session_state['is_analyzed'])
+            st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("ChromaDB", "PGVector", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
         
 
         if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
@@ -475,12 +475,12 @@ def main():
             # text-embedding-3-small: dimension=1536 (Increased performance over 2nd generation ada embedding model)
             # text-embedding-3-large: dimension=3072 (Most capable embedding model for both english and non-english tasks)
             # text-embedding-ada-002: dimension=1536 (Most capable 2nd generation embedding model, replacing 16 first generation models)
-            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"], index=0,  disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"], index=0,  disabled=st.session_state['is_analyzed'])
         else:
             # mxbai-embed-large: dimension=1024 (State-of-the-art large embedding model from mixedbread.ai) ("num_ctx": 512)
             # nomic-embed-text: dimension=768 (A high-performing open embedding model with a large token context window.) ("num_ctx": 8192)
             # all-minilm : dimension=384 (Embedding models on very large sentence level datasets.) ("num_ctx": 256)
-            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b", "llama3.2:1b", "llama3.2:3b"], index=0,  disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b", "llama3.2:1b", "llama3.2:3b"], index=5,  disabled=st.session_state['is_analyzed'])
 
         st.session_state['selected_embedding_dimension'] = get_max_value_of_model_embedding_dimensions(st.session_state.get('selected_embedding_model', None))
         print(f"[DEBUG] (selected_embedding_model) {st.session_state.get('selected_embedding_model', None)}")
@@ -492,7 +492,7 @@ def main():
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
         with col_ai_llm:
             if st.session_state['selected_ai'] == "OpenAI":
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4, disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=0, disabled=st.session_state['is_analyzed'])
             else:
                 st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=1, disabled=st.session_state['is_analyzed'])
         with col_ai_temperature:
@@ -502,7 +502,7 @@ def main():
 
         col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
         with col_chunk_size:
-            st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=200, max_value=5000, value=500, step=100, disabled=st.session_state['is_analyzed'])
+            st.session_state['chunk_size'] = st.number_input("Chunk Size", min_value=200, max_value=5000, value=1000, step=100, disabled=st.session_state['is_analyzed'])
         with col_chunk_overlap:
             st.session_state['chunk_overlap'] = st.number_input("Chunk Overlap", min_value=50, max_value=500, value=100, step=100, disabled=st.session_state['is_analyzed'])
             if not (st.session_state['chunk_size'] >= (st.session_state['chunk_overlap'] * 2)):
