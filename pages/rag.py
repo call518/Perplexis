@@ -145,6 +145,7 @@ default_values = {
     'selected_embedding_model': None,
     'selected_embedding_dimension': None,
     'vectorstore_type': None,
+    'vectorstore_instance': None,
     'pgvector_connection': None,
     'pinecone_similarity': None,
     'chromadb_similarity': None,
@@ -341,22 +342,22 @@ def main():
 
         col_ai, col_embedding, col_vectorstore = st.sidebar.columns(3)
         with col_ai:
-            st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0)
         with col_embedding:
             st.session_state['selected_embedding_provider'] = st.radio("**:blue[Embeddings]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
         with col_vectorstore:
             st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("ChromaDB", "PGVector", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
         
         if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
-            os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
-            os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
+            os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password")
+            os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"])
     
         if st.session_state.get('selected_embedding_provider', "Ollama") == "Ollama" or st.session_state.get('selected_ai', "Ollama") == "Ollama":
-            os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
+            os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"])
     
         if st.session_state['vectorstore_type'] == "ChromaDB":
             st.session_state['chromadb_root_reset'] = st.checkbox("Reset ChromaDB", value=st.session_state.get('chromadb_root_reset', True), disabled=st.session_state['is_analyzed'])
-            st.session_state['chromadb_similarity'] = st.selectbox("ChromaDB Similarity", ["cosine", "l2", "ip"], index=0, disabled=st.session_state['is_analyzed'])
+            st.session_state['chromadb_similarity'] = st.selectbox("ChromaDB Similarity", ["cosine", "l2", "ip"], index=0)
 
         if st.session_state['vectorstore_type'] == "PGVector":
             st.session_state['pgvector_db_reset'] = st.checkbox("Reset PGVector", value=st.session_state.get('pgvector_db_reset', True), disabled=st.session_state['is_analyzed'])
@@ -374,7 +375,7 @@ def main():
         if st.session_state['selected_embedding_provider'] == "OpenAI":
             st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"], index=0,  disabled=st.session_state['is_analyzed'])
         else:
-            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["EEVE:q4", "EEVE:q5", "bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b", "llama3.2:1b", "llama3.2:3b"], index=0,  disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["EEVE:q4", "EEVE:q5", "bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b", "llama3.2:1b", "llama3.2:3b"], index=2,  disabled=st.session_state['is_analyzed'])
 
         st.session_state['selected_embedding_dimension'] = get_max_value_of_model_embedding_dimensions(st.session_state.get('selected_embedding_model', None))
         print(f"[DEBUG] (selected_embedding_model) {st.session_state.get('selected_embedding_model', None)}")
@@ -386,11 +387,11 @@ def main():
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
         with col_ai_llm:
             if st.session_state['selected_ai'] == "OpenAI":
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=0, disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=0)
             else:
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["EEVE:q4", "EEVE:q5", "gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=0, disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["EEVE:q4", "EEVE:q5", "gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=0)
         with col_ai_temperature:
-            st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05, disabled=st.session_state['is_analyzed'])
+            st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05)
 
         col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
         with col_chunk_size:
@@ -401,47 +402,47 @@ def main():
                 st.error("Chunk Overlap must be less than Chunk Size.")
                 st.stop()
 
-        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=1, disabled=st.session_state['is_analyzed'])
+        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=0)
     
         if st.session_state['rag_search_type'] == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
             with col_rag_arg1:
-                st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])        
+                st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1)
             with col_rag_arg2:
-                st.session_state['rag_score_threshold'] = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.50, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_score_threshold'] = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.50, step=0.05)
         elif st.session_state['rag_search_type'] == "similarity":
-            st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
+            st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1)
         elif st.session_state['rag_search_type'] == "mmr":
             col_rag_arg1, col_rag_arg2, col_rag_arg3 = st.sidebar.columns(3)
             with col_rag_arg1:
-                st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1)
             with col_rag_arg2:
-                st.session_state['rag_fetch_k'] = st.number_input("MMR Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_fetch_k'] = st.number_input("MMR Fetch-K", min_value=1, value=5, step=1)
             with col_rag_arg3:
-                st.session_state['rag_lambda_mult'] = st.number_input("MMR Lambda Mult", min_value=0.01, max_value=1.00, value=0.50, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_lambda_mult'] = st.number_input("MMR Lambda Mult", min_value=0.01, max_value=1.00, value=0.50, step=0.05)
 
         col_llm_top_p, col_repeat_penalty = st.sidebar.columns(2)
         with col_llm_top_p:
-            st.session_state['llm_top_p'] = st.number_input("top_p", min_value=0.00, max_value=1.00, value=st.session_state.get('llm_top_p', 0.80), step=0.05, disabled=st.session_state['is_analyzed'])
+            st.session_state['llm_top_p'] = st.number_input("top_p", min_value=0.00, max_value=1.00, value=st.session_state.get('llm_top_p', 0.80), step=0.05)
         with col_repeat_penalty:
             if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
-                st.session_state['llm_openai_frequency_penalty'] = st.number_input("frequency_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_frequency_penalty', 1.00), step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_openai_frequency_penalty'] = st.number_input("frequency_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_frequency_penalty', 1.00), step=0.05)
             if st.session_state.get('selected_ai', "Ollama") == "Ollama":
-                st.session_state['llm_ollama_repeat_penalty'] = st.number_input("repeat_penalty", min_value=0.00, value=st.session_state.get('llm_ollama_repeat_penalty', 1.10), step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_repeat_penalty'] = st.number_input("repeat_penalty", min_value=0.00, value=st.session_state.get('llm_ollama_repeat_penalty', 1.10), step=0.05)
 
         if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
             col_llm_openai_max_tokens, col_llm_openai_presence_penalty = st.sidebar.columns(2)
             with col_llm_openai_max_tokens:
-                st.session_state['llm_openai_max_tokens'] = st.number_input("max_tokens", min_value=1024, max_value=get_max_value_of_model_max_tokens(st.session_state['selected_llm']), value=get_max_value_of_model_max_tokens(st.session_state['selected_llm']), disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_openai_max_tokens'] = st.number_input("max_tokens", min_value=1024, max_value=get_max_value_of_model_max_tokens(st.session_state['selected_llm']), value=get_max_value_of_model_max_tokens(st.session_state['selected_llm']))
             with col_llm_openai_presence_penalty:
-                st.session_state['llm_openai_presence_penalty'] = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_presence_penalty', 1.00), step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_openai_presence_penalty'] = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.get('llm_openai_presence_penalty', 1.00), step=0.05)
         if st.session_state.get('selected_ai', "Ollama") == "Ollama":
             col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
             with col_llm_ollama_num_ctx:
-                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=256, max_value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), value=int(get_max_value_of_model_num_ctx(st.session_state['selected_llm']) / 2), step=512, disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_num_ctx'] = st.number_input("num_ctx", min_value=256, max_value=get_max_value_of_model_num_ctx(st.session_state['selected_llm']), value=int(get_max_value_of_model_num_ctx(st.session_state['selected_llm']) / 2), step=512)
                 print(f"[DEBUG] (llm_ollama_num_ctx) {st.session_state['llm_ollama_num_ctx']}")
             with col_llm_ollama_num_predict:
-                st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=int(get_max_value_of_model_num_predict(st.session_state['selected_llm']) / 2), disabled=st.session_state['is_analyzed'])
+                st.session_state['llm_ollama_num_predict'] = st.number_input("num_predict", value=int(get_max_value_of_model_num_predict(st.session_state['selected_llm']) / 2))
                 print(f"[DEBUG] (llm_ollama_num_predict) {st.session_state['llm_ollama_num_predict']}")
 
         if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
@@ -623,7 +624,7 @@ def main():
                             )
                         )
 
-                    vectorstore = PineconeVectorStore.from_documents(
+                    st.session_state['vectorstore_instance'] = PineconeVectorStore.from_documents(
                         documents = st.session_state['documents_chunks'],
                         embedding = st.session_state['embedding_instance'],
                         index_name = pinecone_index_name
@@ -635,7 +636,7 @@ def main():
                     if st.session_state.get('chromadb_root_reset', True):
                         reset_chromadb(chromadb_dir_path)
                     
-                    vectorstore = Chroma.from_documents(
+                    st.session_state['vectorstore_instance'] = Chroma.from_documents(
                         documents = st.session_state['documents_chunks'],
                         embedding = st.session_state['embedding_instance'],
                         collection_metadata={"hnsw:space": st.session_state['chromadb_similarity']},
@@ -646,7 +647,7 @@ def main():
                     if st.session_state.get('pgvector_db_reset', True):
                         reset_pgvector(st.session_state['pgvector_connection'])
                     
-                    vectorstore = PGVector(
+                    st.session_state['vectorstore_instance'] = PGVector(
                         connection = st.session_state['pgvector_connection'],
                         embeddings = st.session_state['embedding_instance'],
                         embedding_length = st.session_state['selected_embedding_dimension'],
@@ -655,7 +656,7 @@ def main():
                         use_jsonb=True,
                     )
                     
-                    vectorstore.add_documents(st.session_state['documents_chunks'], ids=[doc.metadata["id"] for doc in st.session_state['documents_chunks']])
+                    st.session_state['vectorstore_instance'].add_documents(st.session_state['documents_chunks'], ids=[doc.metadata["id"] for doc in st.session_state['documents_chunks']])
 
                 if st.session_state['rag_search_type'] == "similarity_score_threshold":
                     search_kwargs = {
@@ -673,7 +674,7 @@ def main():
                         "lambda_mult": float(st.session_state['rag_lambda_mult'])
                     }
 
-                st.session_state['retriever'] = vectorstore.as_retriever(
+                st.session_state['retriever'] = st.session_state['vectorstore_instance'].as_retriever(
                     search_type=st.session_state['rag_search_type'],
                     search_kwargs=search_kwargs,
                 )
@@ -707,7 +708,7 @@ def main():
                     output_messages_key="answer",
                 )
 
-            st.session_state['is_analyzed'] = True            
+            st.session_state['is_analyzed'] = True
             st.rerun()
 
         if st.session_state.get('is_analyzed', False) == True:
