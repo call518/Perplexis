@@ -10,8 +10,8 @@ def get_max_value_of_model_max_tokens(model_name):
 
 def get_max_value_of_model_num_predict(model_name):
     ditc = {
-        "EEVE:q4": 4096,
-        "EEVE:q5": 4096,
+        "EEVE:q4": 8192,
+        "EEVE:q5": 8192,
         "gemma2:2b": 8192,
         "gemma2:9b": 16384,
         "gemma2:27b": 32768,
@@ -25,8 +25,8 @@ def get_max_value_of_model_num_predict(model_name):
 
 def get_max_value_of_model_num_ctx(model_name):
     ditc = {
-        "EEVE:q4": 4096,
-        "EEVE:q5": 4096,
+        "EEVE:q4": 8192,
+        "EEVE:q5": 8192,
         "gemma2:2b": 8192,
         "gemma2:9b": 8192,
         "gemma2:27b": 8192,

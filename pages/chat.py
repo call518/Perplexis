@@ -89,6 +89,12 @@ st.title(":books: _:red[Perplexis]_ Chat")
 ### 2. secretes.toml 파일에 설정된 KEY 값이 없을 경우, os.environ 환경변수로 설정된 KEY 값이 적용.
 ### 3. secretes.toml 파일과 os.environ 환경변수 모두 설정되지 않은 경우, Default 값을 적용.
 def set_env_vars():
+    """
+    환경 변수를 설정하는 함수입니다.
+    1) st.secrets 에서 우선적으로 키를 검색
+    2) 환경 변수(os.environ)이 있으면 사용
+    3) 두 곳 모두 없을 시, 기본값으로 설정
+    """
     env_map = {
         "OLLAMA_BASE_URL": {"secret_key": "OLLAMA_BASE_URL", "default_value": "http://localhost:11434"},
         "OPENAI_BASE_URL": {"secret_key": "OPENAI_BASE_URL", "default_value": "https://api.openai.com/v1"},
@@ -159,6 +165,10 @@ default_values = {
 }
 
 def init_session_state():
+    """
+    스트림릿 세션 상태를 초기화하는 함수입니다. 
+    채팅 상태, 파라미터 등을 저장해 사용자의 대화 맥락을 유지합니다.
+    """
     for key, value in default_values.items():
         if key not in st.session_state:
             st.session_state[key] = value
@@ -183,6 +193,11 @@ url_pattern = re.compile(
 
 ### Google Search 처리, URL 목록 반환
 def google_search(query, num_results=10, lang="ko"):
+    """
+    구글 검색을 수행합니다.
+    1) 특정 언어로 검색하거나 제한 없이 검색 가능
+    2) PDF 링크는 결과에서 제외
+    """
     results_list = []
     try:
         if lang == "Any":
@@ -223,6 +238,11 @@ def get_llm_model_name():
 ### ChromaDB 초기화 정의
 chromadb_root = './chromadb'
 def reset_chromadb(db_path=chromadb_root):
+    """
+    ChromaDB를 초기화하는 함수입니다.
+    1) 기존 세션을 종료하고 캐시를 삭제
+    2) DB 폴더를 제거 후, 새 폴더 생성
+    """
     ### ChromaDB 논리 세션 초기화
     chromadb.api.client.SharedSystemClient.clear_system_cache()
     
@@ -241,6 +261,10 @@ def is_valid_url(url):
 
 ### 파일 업로드 후, 업로드된 파일 프로세싱
 def load_docs(file):
+    """
+    업로드된 파일을 확장자에 따라 로드합니다.
+    TXT 파일은 TextLoader, PDF 파일은 PyMuPDFLoader를 사용해 Document 객체 리스트를 반환합니다.
+    """
     file_ext = os.path.splitext(file)[1].lower()
     file_path = f"{upload_dir}/{file}"
     if file_ext == ".txt":
@@ -255,6 +279,10 @@ def load_docs(file):
 #--------------------------------------------------
 
 def main():
+    """
+    메인 함수로서, 스트림릿 인터페이스를 구성하고 
+    AI 모델 파라미터 설정 및 채팅 기능을 제공합니다.
+    """
     # 사이드바 영역 구성
     with st.sidebar:
         st.title("Parameters")
@@ -276,7 +304,7 @@ def main():
             if st.session_state['selected_ai'] == "OpenAI":
                 st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4, disabled=st.session_state['is_analyzed'])
             else:
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["EEVE:q4", "EEVE:q5", "gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=0, disabled=st.session_state['is_analyzed'])
         with col_ai_temperature:
             # st.session_state['temperature'] = st.text_input("LLM Temperature (0.0 ~ 1.0)", value=st.session_state['temperature'])
             st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05, disabled=st.session_state['is_analyzed'])
