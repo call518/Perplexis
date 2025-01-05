@@ -10,6 +10,8 @@ def get_max_value_of_model_max_tokens(model_name):
 
 def get_max_value_of_model_num_predict(model_name):
     ditc = {
+        "EEVE:q4": 4096,
+        "EEVE:q5": 4096,
         "gemma2:2b": 8192,
         "gemma2:9b": 16384,
         "gemma2:27b": 32768,
@@ -19,10 +21,12 @@ def get_max_value_of_model_num_predict(model_name):
         "codegemma:2b": 16384,
         "codegemma:7b": 32768,
     }
-    return ditc.get(model_name, 128)
+    return ditc.get(model_name, 1024)
 
 def get_max_value_of_model_num_ctx(model_name):
     ditc = {
+        "EEVE:q4": 4096,
+        "EEVE:q5": 4096,
         "gemma2:2b": 8192,
         "gemma2:9b": 8192,
         "gemma2:27b": 8192,
@@ -41,6 +45,8 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         "text-embedding-3-large": 3072,
         "text-embedding-ada-002": 1536,
         ### Olllama
+        "EEVE:q4": 4096,
+        "EEVE:q5": 4096,
         "bge-m3:567m": 1024,
         "all-minilm:22m": 384,
         "all-minilm:33m": 384,
