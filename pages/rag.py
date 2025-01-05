@@ -168,18 +168,8 @@ default_values = {
     'google_custom_urls': None,
     'google_search_result_count': None,
     'google_search_doc_lang': None,
-    'rag_history_user': [],
-    'rag_history_ai': [],
-    'rag_history_llm_model_name': [],
-    'rag_history_rag_contexts': [],
-    'rag_history_temperature': [],
-    'rag_history_rag_search_type': [],
-    'rag_history_rag_top_k': [],
-    'rag_history_rag_score_threshold': [],
-    'rag_history_rag_fetch_k': [],
-    'rag_history_rag_rag_lambda_mult': [],
+    'rag_history': [],  # single list for storing Q/A with metadata
     'store': {},
-    'rag_history_answer_elapsed_time': [],
 }
 
 def init_session_state():
@@ -346,7 +336,7 @@ def main():
         with col_embedding:
             st.session_state['selected_embedding_provider'] = st.radio("**:blue[Embeddings]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
         with col_vectorstore:
-            st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("ChromaDB", "PGVector", "Pinecone"), index=0, disabled=st.session_state['is_analyzed'])
+            st.session_state['vectorstore_type'] = st.radio("**:blue[VectorDB]**", ("ChromaDB", "PGVector", "Pinecone"), index=1, disabled=st.session_state['is_analyzed'])
         
         if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
             os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password")
@@ -375,7 +365,7 @@ def main():
         if st.session_state['selected_embedding_provider'] == "OpenAI":
             st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"], index=0,  disabled=st.session_state['is_analyzed'])
         else:
-            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["EEVE:q4", "EEVE:q5", "bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b", "llama3.2:1b", "llama3.2:3b"], index=2,  disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["EEVE:q4", "EEVE:q5", "bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "llama3:8b", "llama3.2:1b", "llama3.2:3b"], index=5,  disabled=st.session_state['is_analyzed'])
 
         st.session_state['selected_embedding_dimension'] = get_max_value_of_model_embedding_dimensions(st.session_state.get('selected_embedding_model', None))
         print(f"[DEBUG] (selected_embedding_model) {st.session_state.get('selected_embedding_model', None)}")
@@ -389,7 +379,7 @@ def main():
             if st.session_state['selected_ai'] == "OpenAI":
                 st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=0)
             else:
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["EEVE:q4", "EEVE:q5", "gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=0)
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["EEVE:q4", "EEVE:q5", "gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=3)
         with col_ai_temperature:
             st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05)
 
@@ -402,7 +392,7 @@ def main():
                 st.error("Chunk Overlap must be less than Chunk Size.")
                 st.stop()
 
-        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=0)
+        st.session_state['rag_search_type'] = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=1)
     
         if st.session_state['rag_search_type'] == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
@@ -763,48 +753,43 @@ def main():
             print(f"[DEBUG] AI Result: {result}")
             
             ai_response = result['answer']
-            
             rag_contexts = result.get('context', [])
-            
-            llm_model_name = get_llm_model_name()
+            new_entry = {
+                "user": user_input,
+                "assistant": ai_response,
+                "llm_model_name": get_llm_model_name(),
+                "rag_contexts": rag_contexts,
+                "temperature": st.session_state['temperature'],
+                "rag_search_type": st.session_state.get('rag_search_type', 'Unknown'),
+                "rag_top_k": st.session_state.get('rag_top_k', 'Unknown'),
+                "rag_score_threshold": st.session_state.get('rag_score_threshold', 'Unknown'),
+                "rag_fetch_k": st.session_state.get('rag_fetch_k', 'Unknown'),
+                "rag_lambda_mult": st.session_state.get('rag_lambda_mult', 'Unknown'),
+                "elapsed_time": answer_elapsed_time,
+            }
+            st.session_state['rag_history'].append(new_entry)
 
-            st.session_state['rag_history_user'].append(user_input)
-            st.session_state['rag_history_ai'].append(ai_response)
-            st.session_state['rag_history_llm_model_name'].append(llm_model_name)
-            st.session_state['rag_history_rag_contexts'].append(rag_contexts)
-            st.session_state['rag_history_temperature'].append(st.session_state['temperature'])
-            st.session_state['rag_history_rag_search_type'].append(st.session_state.get('rag_search_type', 'Unknown'))
-            st.session_state['rag_history_rag_top_k'].append(st.session_state.get('rag_top_k', 'Unknown'))
-            if st.session_state.get('rag_search_type', 'Unknown') == "similarity_score_threshold":
-                curr_rag_score_threshold = st.session_state.get('rag_score_threshold', 'Unknown')
-            else:
-                curr_rag_score_threshold = "Unknown"
-            st.session_state['rag_history_rag_score_threshold'].append(curr_rag_score_threshold)
-            st.session_state['rag_history_rag_fetch_k'].append(st.session_state.get('rag_fetch_k', 'Unknown'))
-            st.session_state['rag_history_rag_rag_lambda_mult'].append(st.session_state.get('rag_lambda_mult', 'Unknown'))
-            st.session_state['rag_history_answer_elapsed_time'].append(answer_elapsed_time)
-
-    if st.session_state['rag_history_ai']:
+    if st.session_state['rag_history']:
         with container_history:
-            for i in range(len(st.session_state['rag_history_ai'])):
+            for i, entry in enumerate(st.session_state['rag_history']):
                 with st.chat_message("user"):
                     st.markdown("**<span style='color: blue;'>You</span>**", unsafe_allow_html=True)
-                    st.write(st.session_state["rag_history_user"][i])
+                    st.write(entry["user"])
                 with st.chat_message("assistant"):
                     st.markdown(f"**<span style='color: green;'>{st.session_state.get('ai_role', 'Unknown')}</span>**", unsafe_allow_html=True)
-                    st.write(st.session_state["rag_history_ai"][i])
+                    st.write(entry["assistant"])
                 
-                llm_model_name = st.session_state['rag_history_llm_model_name'][i]
-                temperature = st.session_state['rag_history_temperature'][i]
-                rag_search_type = st.session_state['rag_history_rag_search_type'][i]
-                rag_top_k = st.session_state['rag_history_rag_top_k'][i]
-                rag_fetch_k = st.session_state['rag_history_rag_fetch_k'][i]
-                rag_lambda_mult = st.session_state['rag_history_rag_rag_lambda_mult'][i]
+                llm_model_name = entry["llm_model_name"]
+                temperature = entry["temperature"]
+                rag_search_type = entry["rag_search_type"]
+                rag_top_k = entry["rag_top_k"]
+                rag_fetch_k = entry["rag_fetch_k"]
+                rag_lambda_mult = entry["rag_lambda_mult"]
                 if st.session_state.get('rag_search_type', 'Unknown') == "similarity_score_threshold":
-                    rag_score_threshold = st.session_state['rag_history_rag_score_threshold'][i]
+                    rag_score_threshold = entry["rag_score_threshold"]
                 else:
                     rag_score_threshold = None
-                answer_elapsed_time = st.session_state['rag_history_answer_elapsed_time'][i]
+                answer_elapsed_time = entry["elapsed_time"]
                 
                 with st.expander("Show Metadata"):
                     st.markdown(
@@ -828,7 +813,7 @@ def main():
                             - <b>LLM Args(Ollama) num_ctx</b>: <font color=black>{st.session_state.get('llm_ollama_num_ctx', None)}</font><br>
                             - <b>LLM Args(Ollama) num_predict</b>: <font color=black>{st.session_state.get('llm_ollama_num_predict', None)}</font><br>
                             - <b>Pinecone Similarity</b>: <font color=black>{st.session_state.get('pinecone_similarity', None)}</font><br>
-                            - <b>RAG Contexts</b>: <font color=black>{len(st.session_state['rag_history_rag_contexts'][-1])}</font><br>
+                            - <b>RAG Contexts</b>: <font color=black>{len(entry["rag_contexts"])}</font><br>
                             - <b>RAG Top-K</b>: <font color=black>{rag_top_k}</font><br>
                             - <b>RAG Search Type</b>: <font color=black>{rag_search_type}</font><br>
                             - <b>RAG Score</b>: <font color=black>{rag_score_threshold}</font><br>
@@ -842,8 +827,8 @@ def main():
                     st.write("")
                 
                 with st.expander("Show Contexts"):
-                    if st.session_state['rag_history_rag_contexts'][i]:
-                        for context in st.session_state['rag_history_rag_contexts'][i]:
+                    if entry["rag_contexts"]:
+                        for context in entry["rag_contexts"]:
                             st.write(context)
                     else:
                         st.write(f"No relevant docs were retrieved using the relevance score threshold {rag_score_threshold}")
