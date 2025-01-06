@@ -759,7 +759,7 @@ def main():
                 "assistant": ai_response,
                 "llm_model_name": get_llm_model_name(),
                 "rag_contexts": rag_contexts,
-                "temperature": st.session_state['temperature'],
+                "temperature": st.session_state.get('temperature', 'Unknown'),
                 "rag_search_type": st.session_state.get('rag_search_type', 'Unknown'),
                 "rag_top_k": st.session_state.get('rag_top_k', 'Unknown'),
                 "rag_score_threshold": st.session_state.get('rag_score_threshold', 'Unknown'),
