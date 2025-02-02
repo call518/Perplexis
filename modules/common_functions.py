@@ -10,12 +10,13 @@ def get_max_value_of_model_max_tokens(model_name):
 
 def get_max_value_of_model_num_predict(model_name):
     ditc = {
-        "EEVE:q4": 8192,
-        "EEVE:q5": 8192,
+        "EEVE:q4": 4096,
+        "EEVE:q5": 4096,
         "gemma2:2b": 8192,
         "gemma2:9b": 8192,
         "gemma2:27b": 8192,
         "mistral:7b": 32768,
+        "llama3:8b": 8192,
         "llama3.2:1b": 8192,
         "llama3.2:3b": 8192,
         "codegemma:2b": 16384,
@@ -25,12 +26,13 @@ def get_max_value_of_model_num_predict(model_name):
 
 def get_max_value_of_model_num_ctx(model_name):
     ditc = {
-        "EEVE:q4": 8192,
-        "EEVE:q5": 8192,
+        "EEVE:q4": 4096,
+        "EEVE:q5": 4096,
         "gemma2:2b": 8192,
         "gemma2:9b": 8192,
         "gemma2:27b": 8192,
         "mistral:7b": 32768,
+        "llama3:8b": 8192,
         "llama3.2:1b": 131072,
         "llama3.2:3b": 131072,
         "codegemma:2b": 8192,
@@ -55,6 +57,7 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         "gemma2:2b": 2304,
         "gemma2:9b": 3584,
         "gemma2:27b": 4608,
+        "mistral:7b": 4096,
         "llama3:8b": 4096,
         "llama3.2:1b": 2048,
         "llama3.2:3b": 3072,
