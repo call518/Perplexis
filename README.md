@@ -130,14 +130,10 @@ LANGCHAIN_API_KEY = "{your langchain api key}"
 $ pip install -r requirements.txt
 ```
 
-### Run PGVector Database (Optional)
+### Run PGVector Database with DOcker (Optional)
 
 ```bash
 $ docker run --name perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -d call518/pgvector:pg16-1.0.0
-
-or
-
-$ docker run --name perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis --network host -d call518/pgvector:pg16-1.0.0
 ```
 
 ### Run App
