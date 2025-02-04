@@ -117,6 +117,7 @@ OLLAMA_BASE_URL = "{your ollama api server base url}"
 OPENAI_BASE_URL = "https://api.openai.com/v1"
 OPENAI_API_KEY = "{your openai api key}"
 PINECONE_API_KEY = "{your pinecone api key}"
+PGVECTOR_HOST = "localhost" ### or "host.docker.internal"
 ...
 
 ### (Optional)
