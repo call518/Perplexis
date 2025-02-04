@@ -365,7 +365,7 @@ def main():
         if st.session_state['selected_embedding_provider'] == "OpenAI":
             st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"], index=0,  disabled=st.session_state['is_analyzed'])
         else:
-            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["EEVE:q4", "EEVE:q5", "bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3:8b", "llama3.2:1b", "llama3.2:3b"], index=5,  disabled=st.session_state['is_analyzed'])
+            st.session_state['selected_embedding_model'] = st.selectbox("Embedding Model", ["call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3:8b", "llama3.2:1b", "llama3.2:3b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b"], index=6,  disabled=st.session_state['is_analyzed'])
 
         st.session_state['selected_embedding_dimension'] = get_max_value_of_model_embedding_dimensions(st.session_state.get('selected_embedding_model', None))
         print(f"[DEBUG] (selected_embedding_model) {st.session_state.get('selected_embedding_model', None)}")
@@ -379,7 +379,7 @@ def main():
             if st.session_state['selected_ai'] == "OpenAI":
                 st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=0, disabled=st.session_state['is_analyzed'])
             else:
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["EEVE:q4", "EEVE:q5", "gemma2:2b", "gemma2:9b", "gemma2:27b", "mistral:7b", "llama3:8b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b"], index=3, disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3:8b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b"], index=3, disabled=st.session_state['is_analyzed'])
         with col_ai_temperature:
             st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05, disabled=st.session_state['is_analyzed'])
 

@@ -10,33 +10,39 @@ def get_max_value_of_model_max_tokens(model_name):
 
 def get_max_value_of_model_num_predict(model_name):
     ditc = {
-        "EEVE:q4": 4096,
-        "EEVE:q5": 4096,
+        "call518/EEVE-8192ctx:10.8b-q4": 4096,
+        "call518/EEVE-8192ctx:10.8b-q5": 4096,
         "gemma2:2b": 8192,
         "gemma2:9b": 8192,
         "gemma2:27b": 8192,
+        "call518/gemma2-uncensored-8192ctx:9b": 8192,
         "mistral:7b": 32768,
         "llama3:8b": 8192,
         "llama3.2:1b": 8192,
         "llama3.2:3b": 8192,
         "codegemma:2b": 16384,
         "codegemma:7b": 32768,
+        "call518/deepseek-r1-32768ctx:8b": 32768,
+        "call518/deepseek-r1-32768ctx:14b": 32768,
     }
     return ditc.get(model_name, 1024)
 
 def get_max_value_of_model_num_ctx(model_name):
     ditc = {
-        "EEVE:q4": 4096,
-        "EEVE:q5": 4096,
+        "call518/EEVE-8192ctx:10.8b-q4": 4096,
+        "call518/EEVE-8192ctx:10.8b-q5": 4096,
         "gemma2:2b": 8192,
         "gemma2:9b": 8192,
         "gemma2:27b": 8192,
+        "call518/gemma2-uncensored-8192ctx:9b": 8192,
         "mistral:7b": 32768,
         "llama3:8b": 8192,
         "llama3.2:1b": 131072,
         "llama3.2:3b": 131072,
         "codegemma:2b": 8192,
         "codegemma:7b": 8192,
+        "call518/deepseek-r1-32768ctx:8b": 32768,
+        "call518/deepseek-r1-32768ctx:14b": 32768,
     }
     return ditc.get(model_name, 1024)
 
@@ -47,8 +53,8 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         "text-embedding-3-large": 3072,
         "text-embedding-ada-002": 1536,
         ### Olllama
-        "EEVE:q4": 4096,
-        "EEVE:q5": 4096,
+        "call518/EEVE-8192ctx:10.8b-q4": 4096,
+        "call518/EEVE-8192ctx:10.8b-q5": 4096,
         "bge-m3:567m": 1024,
         "all-minilm:22m": 384,
         "all-minilm:33m": 384,
@@ -57,10 +63,13 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         "gemma2:2b": 2304,
         "gemma2:9b": 3584,
         "gemma2:27b": 4608,
+        "call518/gemma2-uncensored-8192ctx:9b": 3584,
         "mistral:7b": 4096,
         "llama3:8b": 4096,
         "llama3.2:1b": 2048,
         "llama3.2:3b": 3072,
+        "call518/deepseek-r1-32768ctx:8b": 4096,
+        "call518/deepseek-r1-32768ctx:14b": 5120,
     }
     return ditc.get(model_name)
 
