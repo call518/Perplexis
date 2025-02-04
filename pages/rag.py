@@ -642,6 +642,10 @@ def main():
                         embeddings = st.session_state['embedding_instance'],
                         embedding_length = st.session_state['selected_embedding_dimension'],
                         collection_name = 'perplexis_rag',
+                        ### "distance_strategy" : Should be one of l2, cosine, inner.
+                        # distance_strategy = "l2",
+                        # distance_strategy = "inner",
+                        # distance_strategy = "cosine",
                         distance_strategy = st.session_state['pgvector_similarity'],
                         use_jsonb=True,
                     )

@@ -48,6 +48,7 @@ $ curl -fsSL https://ollama.com/install.sh | sh
 
 $ systemctl start ollama
 
+(Select some LLM Model you need)
 $ ollama pull gemma2:2b
 $ ollama pull gemma2:9b
 $ ollama pull gemma2:27b
@@ -56,14 +57,15 @@ $ ollama pull llama3.2:1b
 $ ollama pull llama3.2:3b
 $ ollama pull codegemma:2b
 $ ollama pull codegemma:7b
+$ ollama pull llama3:8b
 
+(Select some Embedding Model you need)
 $ ollama pull bge-m3:567m
 $ ollama pull all-minilm:22m
 $ ollama pull all-minilm:33m
 $ ollama pull nomic-embed-text
 $ ollama pull mxbai-embed-large
 $ ollama pull mxbai-embed-large
-$ ollama pull llama3:8b
 ```
 
 # Install & Run
@@ -131,6 +133,10 @@ $ pip install -r requirements.txt
 
 ```bash
 $ docker run --name perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -d call518/pgvector:pg16-1.0.0
+
+or
+
+$ docker run --name perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis --network host -d call518/pgvector:pg16-1.0.0
 ```
 
 ### Run App
