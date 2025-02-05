@@ -272,7 +272,7 @@ def main():
     """Governs the Streamlit UI for retrieving and embedding documents, then performing RAG."""
     with st.sidebar:
         st.title("Parameters")
-        st.session_state['ai_role'] = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=2, disabled=st.session_state['is_analyzed'])
+        st.session_state['ai_role'] = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=0, disabled=st.session_state['is_analyzed'])
 
         contextualize_q_system_prompt = (
             "Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
