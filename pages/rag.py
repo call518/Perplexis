@@ -63,6 +63,8 @@ from modules.common_functions import (
     get_max_value_of_model_embedding_dimensions
 )
 
+from langchain.callbacks.base import BaseCallbackHandler  # 추가
+
 #--------------------------------------------------
 
 # 페이지 정보 정의
@@ -124,7 +126,9 @@ def get_remote_ip() -> str:
 default_values = {
     'ai_role': None,
     'chat_memory': None,
-    'chat_conversation': None,
+    'chain_with_history': None,
+    'question_answer_chain': None,
+    'rag_chain': None,
     'chat_response': None,
     'session_id': str(uuid.uuid4()),
     'client_remote_ip' : get_remote_ip(),
@@ -267,6 +271,17 @@ def read_uri_content(uri, type):
         st.error("[ERROR] read_uri_content()")
         st.stop()
     return docs
+
+# 추가: Streamlit 콜백 핸들러
+class StreamlitCallbackHandler(BaseCallbackHandler):
+    def __init__(self, placeholder):
+        self.placeholder = placeholder
+        self.text = ""
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        self.text += token
+        self.placeholder.write(self.text)
+
+#-----------------------------------------------------------
 
 def main():
     """Governs the Streamlit UI for retrieving and embedding documents, then performing RAG."""
@@ -458,40 +473,6 @@ def main():
                 model = st.session_state.get('selected_embedding_model', None),
             )
 
-        if st.session_state['selected_ai'] == "OpenAI":
-            st.session_state['llm'] = ChatOpenAI(
-                base_url = os.environ["OPENAI_BASE_URL"],
-                model = st.session_state['selected_llm'],
-                temperature = st.session_state['temperature'],
-                cache = False,
-                streaming = False,
-                presence_penalty = st.session_state['llm_openai_presence_penalty'],
-                frequency_penalty = st.session_state['llm_openai_frequency_penalty'],
-                stream_usage = False,
-                n = 1,
-                top_p = st.session_state['llm_top_p'],
-                max_tokens = st.session_state['llm_openai_max_tokens'],
-                verbose = True,
-            )
-        else:
-            st.session_state['llm'] = OllamaLLM(
-                base_url = os.environ["OLLAMA_BASE_URL"],
-                model = st.session_state['selected_llm'],
-                temperature = st.session_state['temperature'],
-                cache = False,
-                num_ctx = st.session_state['llm_ollama_num_ctx'],
-                num_predict = st.session_state['llm_ollama_num_predict'],
-                # num_gpu = None,
-                # num_thread = None,
-                # repeat_last_n = None,
-                repeat_penalty = st.session_state['llm_ollama_repeat_penalty'],
-                # tfs_z = None,
-                # top_k = None,
-                top_p = st.session_state['llm_top_p'],
-                # format = "", # Literal['', 'json'] (default: "")
-                verbose = True,
-            )
-
         if st.button("Embedding", disabled=st.session_state['is_analyzed']):
             docs_contents = []
 
@@ -681,29 +662,6 @@ def main():
                     st.error("[ERROR] Embedding failed!")
                     st.stop()
 
-                history_aware_retriever = create_history_aware_retriever(
-                    st.session_state['llm'],
-                    st.session_state['retriever'],
-                    contextualize_q_prompt
-                )
-
-                question_answer_chain = create_stuff_documents_chain(st.session_state['llm'], qa_prompt)
-                rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
-
-                st.session_state['store'] = {}
-                def get_session_history(session_id: str) -> BaseChatMessageHistory:
-                    if session_id not in st.session_state['store']:
-                        st.session_state['store'][session_id] = ChatMessageHistory()
-                    return st.session_state['store'][session_id]
-
-                st.session_state['conversational_rag_chain'] = RunnableWithMessageHistory(
-                    rag_chain,
-                    get_session_history,
-                    input_messages_key="input",
-                    history_messages_key="chat_history",
-                    output_messages_key="answer",
-                )
-
             st.session_state['is_analyzed'] = True
             st.rerun()
 
@@ -744,9 +702,78 @@ def main():
             submit_button = st.form_submit_button(label='Send', use_container_width=False, help="Click to send your message", on_click=None, args=None, kwargs=None, disabled=False, icon=":material/send:", type='primary')
 
         if submit_button and user_input:
+            streaming_placeholder = st.empty()
+            callback_handler = StreamlitCallbackHandler(placeholder=streaming_placeholder)
+
+            ### LLM 제정의
+            if st.session_state['selected_ai'] == "OpenAI":
+                st.session_state['llm'] = ChatOpenAI(
+                    base_url = os.environ["OPENAI_BASE_URL"],
+                    model = st.session_state['selected_llm'],
+                    temperature = st.session_state['temperature'],
+                    cache = False,
+                    streaming = True,
+                    callbacks = [callback_handler],
+                    presence_penalty = st.session_state['llm_openai_presence_penalty'],
+                    frequency_penalty = st.session_state['llm_openai_frequency_penalty'],
+                    stream_usage = False,
+                    n = 1,
+                    top_p = st.session_state['llm_top_p'],
+                    max_tokens = st.session_state['llm_openai_max_tokens'],
+                    verbose = True,
+                )
+            else:
+                st.session_state['llm'] = OllamaLLM(
+                    base_url = os.environ["OLLAMA_BASE_URL"],
+                    model = st.session_state['selected_llm'],
+                    temperature = st.session_state['temperature'],
+                    cache = False,
+                    streaming = True,
+                    callbacks = [callback_handler],
+                    num_ctx = st.session_state['llm_ollama_num_ctx'],
+                    num_predict = st.session_state['llm_ollama_num_predict'],
+                    # num_gpu = None,
+                    # num_thread = None,
+                    # repeat_last_n = None,
+                    repeat_penalty = st.session_state['llm_ollama_repeat_penalty'],
+                    # tfs_z = None,
+                    # top_k = None,
+                    top_p = st.session_state['llm_top_p'],
+                    # format = "", # Literal['', 'json'] (default: "")
+                    verbose = True,
+                )
+
+            history_aware_retriever = create_history_aware_retriever(
+                st.session_state['llm'],
+                st.session_state['retriever'],
+                contextualize_q_prompt
+            )
+
+            if st.session_state['question_answer_chain'] is None:
+                st.session_state['question_answer_chain'] = create_stuff_documents_chain(st.session_state['llm'], qa_prompt)
+            
+            if st.session_state['rag_chain'] is None:
+                st.session_state['rag_chain'] = create_retrieval_chain(history_aware_retriever, st.session_state['question_answer_chain'])
+
+            # if not st.session_state['store']:
+            #     st.session_state['store'] = {}
+
+            def get_session_history(session_id: str) -> BaseChatMessageHistory:
+                if session_id not in st.session_state['store']:
+                    st.session_state['store'][session_id] = ChatMessageHistory()
+                return st.session_state['store'][session_id]
+
+            st.session_state['chain_with_history'] = RunnableWithMessageHistory(
+                st.session_state['rag_chain'],
+                get_session_history,
+                input_messages_key="input",
+                history_messages_key="chat_history",
+                output_messages_key="answer",
+            )
+
             with st.spinner('Thinking...'):
                 start_time = time.perf_counter()
-                result = st.session_state['conversational_rag_chain'].invoke(
+                result = st.session_state['chain_with_history'].invoke(
                     {"input": user_input},
                     config={
                         "configurable": {"session_id": st.session_state['session_id']}
@@ -774,6 +801,8 @@ def main():
                 "elapsed_time": answer_elapsed_time,
             }
             st.session_state['rag_history'].append(new_entry)
+            
+            streaming_placeholder.empty()  # 추가: 스트리밍 출력 후 placeholder 비우기
 
     if st.session_state['rag_history']:
         with container_history:
