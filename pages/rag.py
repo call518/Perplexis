@@ -292,7 +292,8 @@ def main():
             "- If you don't know the answer, say you don't know.\n"
             "- Write the answer using at least 50 sentences if possible, and include as much accurate and detailed information as possible.\n"
             "- Write the answer in Korean if possible.\n"
-            f"- {system_prompt_ai_role}\n"
+            f"- Your role as an AI is as follows: {system_prompt_ai_role}\n"
+            "- After answering the question, provide five relevant follow-up questions. These questions should be closely related to the content of your answer, encouraging deeper exploration or clarification of key points.\n"
             "\n"
             "<CTX-START>\n"
             "{context}\n"
@@ -399,7 +400,7 @@ def main():
             with col_rag_arg1:
                 st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
             with col_rag_arg2:
-                st.session_state['rag_score_threshold'] = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.50, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_score_threshold'] = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.70, step=0.05, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "similarity":
             st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "mmr":
