@@ -78,6 +78,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import time
 
+from langchain.callbacks.base import BaseCallbackHandler  # 추가
+
 #--------------------------------------------------
 
 # 페이지 정보 정의
@@ -179,6 +181,15 @@ def init_session_state():
 init_session_state()
 
 #--------------------------------------------------
+
+# 추가: Streamlit 콜백 핸들러
+class StreamlitCallbackHandler(BaseCallbackHandler):
+    def __init__(self, placeholder):
+        self.placeholder = placeholder
+        self.text = ""
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        self.text += token
+        self.placeholder.write(self.text)
 
 def main():
     """
@@ -318,19 +329,62 @@ def main():
     with container_user_textbox:
         with st.form(key='my_form', clear_on_submit=True):
             user_input = st.text_area("You:", key='input', height=100)
-            submit_button = st.form_submit_button(label='Send', use_container_width=False, help="Click to send your message", on_click=None, args=None, kwargs=None, disabled=False, icon=":material/send:", type='primary')
+            submit_button = st.form_submit_button(label='Send', help="Click to send your message", icon=":material/send:", type='primary')
             
         if submit_button and user_input:
+            streaming_placeholder = st.empty()  # 토큰 실시간 출력을 위한 컨테이너
+            callback_handler = StreamlitCallbackHandler(placeholder=streaming_placeholder)
+            # LLM 재생성: streaming=True 및 callbacks 적용
+            if st.session_state['selected_ai'] == "OpenAI":
+                st.session_state['llm'] = ChatOpenAI(
+                    base_url = os.environ["OPENAI_BASE_URL"],
+                    model = st.session_state.get('selected_llm', "gpt-3.5-turbo"),
+                    temperature = st.session_state.get('temperature', 0.00),
+                    cache = False,
+                    streaming = True,
+                    callbacks = [callback_handler],
+                    presence_penalty = st.session_state.get('llm_openai_presence_penalty', 1.00),
+                    frequency_penalty = st.session_state.get('llm_openai_frequency_penalty', 1.00),
+                    stream_usage = False,
+                    n = 1,
+                    top_p = st.session_state.get('llm_top_p', 0.50),
+                    max_tokens = st.session_state.get('llm_openai_max_tokens', 1024),
+                    verbose = True,
+                )
+            else:
+                st.session_state['llm'] = OllamaLLM(
+                    base_url = os.environ["OLLAMA_BASE_URL"],
+                    model = st.session_state.get('selected_llm', "gemma2:9b"),
+                    temperature = st.session_state.get('temperature', 0.00),
+                    cache = False,
+                    streaming = True,
+                    callbacks = [callback_handler],
+                    num_ctx = st.session_state.get('llm_ollama_num_ctx', 1024),
+                    num_predict = st.session_state.get('llm_ollama_num_predict', -1),
+                    repeat_penalty = st.session_state.get('llm_ollama_repeat_penalty', 1.00),
+                    top_p = st.session_state.get('llm_top_p', 0.80),
+                    verbose = True,
+                )
+            # chat_conversation 재생성 (새 llm 적용)
+            st.session_state['chat_conversation'] = LLMChain(
+                llm=st.session_state['llm'],
+                prompt=ChatPromptTemplate(
+                    messages=[
+                        SystemMessagePromptTemplate.from_template(st.session_state['system_prompt_content']),
+                        MessagesPlaceholder(variable_name="chat_memory"),
+                        HumanMessagePromptTemplate.from_template("{question}")
+                    ]
+                ),
+                memory=st.session_state['chat_memory'],
+                verbose=True,
+            )
             with st.spinner('Thinking...'):
                 start_time = time.perf_counter()
-                st.session_state['chat_response'] = st.session_state['chat_conversation'].invoke({"question": user_input})
-                # print(f"[DEBUG] (chat_response) {st.session_state['chat_response']}")
+                response = st.session_state['chat_conversation'].run({"question": user_input})
+                st.session_state['chat_response'] = response
                 end_time = time.perf_counter()
-                answer_elapsed_time = end_time - start_time
-                
-                print(f"[DEBUG] (answer_elapsed_time) {answer_elapsed_time} sec")
-                
-                st.session_state['chat_history_elapsed_time'].append(answer_elapsed_time)
+                st.session_state['chat_history_elapsed_time'].append(end_time - start_time)
+            streaming_placeholder.empty()  # 추가: 스트리밍 출력 후 placeholder 비우기
 
     ### container_history 처리
     if st.session_state.get('chat_memory', None) is not None:
