@@ -703,8 +703,8 @@ def main():
             submit_button = st.form_submit_button(label='Send', use_container_width=False, help="Click to send your message", on_click=None, args=None, kwargs=None, disabled=False, icon=":material/send:", type='primary')
 
         if submit_button and user_input:
-            streaming_placeholder = st.empty()
-            callback_handler = StreamlitCallbackHandler(placeholder=streaming_placeholder)
+            # streaming_placeholder = st.empty()
+            # callback_handler = StreamlitCallbackHandler(placeholder=streaming_placeholder)
 
             ### LLM 제정의
             if st.session_state['selected_ai'] == "OpenAI":
@@ -714,7 +714,7 @@ def main():
                     temperature = st.session_state['temperature'],
                     cache = False,
                     streaming = True,
-                    callbacks = [callback_handler],
+                    # callbacks = [callback_handler],
                     presence_penalty = st.session_state['llm_openai_presence_penalty'],
                     frequency_penalty = st.session_state['llm_openai_frequency_penalty'],
                     stream_usage = False,
@@ -730,7 +730,7 @@ def main():
                     temperature = st.session_state['temperature'],
                     cache = False,
                     streaming = True,
-                    callbacks = [callback_handler],
+                    # callbacks = [callback_handler],
                     num_ctx = st.session_state['llm_ollama_num_ctx'],
                     num_predict = st.session_state['llm_ollama_num_predict'],
                     # num_gpu = None,
@@ -804,7 +804,7 @@ def main():
             }
             st.session_state['rag_history'].append(new_entry)
             
-            streaming_placeholder.empty()  # 추가: 스트리밍 출력 후 placeholder 비우기
+            # streaming_placeholder.empty()  # 추가: 스트리밍 출력 후 placeholder 비우기
 
     if st.session_state['rag_history']:
         with container_history:
