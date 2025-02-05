@@ -126,6 +126,7 @@ def get_remote_ip() -> str:
 default_values = {
     'ai_role': None,
     'chat_memory': None,
+    'history_aware_retriever': None,
     'chain_with_history': None,
     'question_answer_chain': None,
     'rag_chain': None,
@@ -743,17 +744,18 @@ def main():
                     verbose = True,
                 )
 
-            history_aware_retriever = create_history_aware_retriever(
-                st.session_state['llm'],
-                st.session_state['retriever'],
-                contextualize_q_prompt
-            )
+            if st.session_state['history_aware_retriever'] is None:
+                st.session_state['history_aware_retriever'] = create_history_aware_retriever(
+                    st.session_state['llm'],
+                    st.session_state['retriever'],
+                    contextualize_q_prompt
+                )
 
             if st.session_state['question_answer_chain'] is None:
                 st.session_state['question_answer_chain'] = create_stuff_documents_chain(st.session_state['llm'], qa_prompt)
             
             if st.session_state['rag_chain'] is None:
-                st.session_state['rag_chain'] = create_retrieval_chain(history_aware_retriever, st.session_state['question_answer_chain'])
+                st.session_state['rag_chain'] = create_retrieval_chain(st.session_state['history_aware_retriever'], st.session_state['question_answer_chain'])
 
             # if not st.session_state['store']:
             #     st.session_state['store'] = {}
