@@ -350,6 +350,16 @@ def main():
                             st.markdown(
                                 f"""
                                 <div style="color: #2E9AFE; border: 1px solid #ddd; padding: 5px; background-color: #f9f9f9; border-radius: 5px; width: 100%;">
+                                    - <b>AI</b>: <font color=red>{st.session_state.get('selected_ai', 'Unknown')}</font><br>
+                                    - <b>LLM Model</b>: <font color=black>{st.session_state.get('selected_llm', 'Unknown')}</font><br>
+                                    - <b>LLM Args(Common) temperature</b>: <font color=black>{st.session_state.get('temperature', 'Unknown')}</font><br>
+                                    - <b>LLM Args(Common) top_p</b>: <font color=black>{st.session_state.get('llm_top_p', None)}</font><br>
+                                    - <b>LLM Args(OpenAI) presence_penalty</b>: <font color=black>{st.session_state.get('llm_openai_presence_penalty', None)}</font><br>
+                                    - <b>LLM Args(OpenAI) frequency_penalty</b>: <font color=black>{st.session_state.get('llm_openai_frequency_penalty', None)}</font><br>
+                                    - <b>LLM Args(OpenAI) max_tokens</b>: <font color=black>{st.session_state.get('llm_openai_max_tokens', None)}</font><br>
+                                    - <b>LLM Args(Ollama) repeat_penalty</b>: <font color=black>{st.session_state.get('llm_ollama_repeat_penalty', None)}</font><br>
+                                    - <b>LLM Args(Ollama) num_ctx</b>: <font color=black>{st.session_state.get('llm_ollama_num_ctx', None)}</font><br>
+                                    - <b>LLM Args(Ollama) num_predict</b>: <font color=black>{st.session_state.get('llm_ollama_num_predict', None)}</font><br>
                                     - <b>Elapsed time</b>: <font color=black>{answer_elapsed_time:.0f} sec</font><br>
                                 </div>
                                 """,
