@@ -1,7 +1,3 @@
-# __import__('pysqlite3')
-# import sys
-# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-
 from modules.nav import Navbar
 from modules.common_functions import get_ai_role_and_sysetm_prompt
 from modules.common_functions import get_country_name_by_code
@@ -23,59 +19,13 @@ from langchain.chains import create_history_aware_retriever, create_retrieval_ch
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import ConversationalRetrievalChain
 
-from langchain_community.chat_message_histories import ChatMessageHistory
-
-import bs4
-
-from langchain_community.document_loaders import WebBaseLoader
-
-from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-
 from langchain_ollama import OllamaLLM
 
-### (임시) OllamaEmbeddings 모듈 임포트 수정 (langchain_ollama 는 임베딩 실패 발생)
-### --> langchain_ollama.embeddings 으로 정상화 테스트 중...
-# from langchain_ollama import OllamaEmbeddings
-from langchain_ollama.embeddings import OllamaEmbeddings
-# from langchain_community.embeddings import OllamaEmbeddings
-
-from langchain.prompts import (
-    ChatPromptTemplate,
-    MessagesPlaceholder,
-    SystemMessagePromptTemplate,
-    HumanMessagePromptTemplate,
-)
-from langchain_core.messages import HumanMessage, AIMessage
 from langchain.chains import LLMChain
 from langchain.memory import ConversationBufferMemory
-import re
-from pinecone.grpc import PineconeGRPC as Pinecone
-from pinecone import ServerlessSpec
-from langchain_pinecone import PineconeVectorStore
-
-from langchain_community.vectorstores import Chroma
-
-from langchain_postgres import PGVector
-from langchain_postgres.vectorstores import PGVector
-import chromadb
-from langchain_core.documents import Document
-
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_community.document_loaders import TextLoader
-
-from googlesearch import search
 
 import os
-import shutil
-import fitz
 import requests
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import time
 
 from langchain.callbacks.base import BaseCallbackHandler  # 추가
