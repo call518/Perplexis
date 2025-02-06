@@ -1,11 +1,11 @@
 from modules.nav import Navbar
 import streamlit as st
 
+st.set_page_config(page_title="Perplexis:Home", page_icon=":books:", layout="wide")
+st.title(f'🔥 _:red[Perplexis]_')
 
 def main():
     Navbar()
-
-    st.title(f'🔥 _:red[Perplexis]_')
 
     st.markdown("""
     # RAG & Chat Application Guide

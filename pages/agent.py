@@ -1,6 +1,6 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from modules.nav import Navbar
 from modules.common_functions import get_ai_role_and_sysetm_prompt
@@ -80,11 +80,15 @@ import time
 
 from langchain.callbacks.base import BaseCallbackHandler  # 추가
 
+### Agent 관련 모듈 추가 임포트
+from langchain.agents import initialize_agent, load_tools, Tool
+from langchain.tools import DuckDuckGoSearchRun
+
 #--------------------------------------------------
 
 # 페이지 정보 정의
-st.set_page_config(page_title="Perplexis:Chat", page_icon=":books:", layout="wide")
-st.title(":material/chat_bubble: _:red[Perplexis]_ Chat")
+st.set_page_config(page_title="Perplexis:Agent", page_icon=":books:", layout="wide")
+st.title(":material/support_agent: _:red[Perplexis]_ Agent")
 
 ### Mandatory Keys 설정
 ### 1. secretes.toml 파일에 설정된 KEY 값이 최우선 적용.
@@ -107,6 +111,7 @@ def set_env_vars():
         "PGVECTOR_USER": {"secret_key": "PGVECTOR_USER", "default_value": "perplexis"},
         "PGVECTOR_PASS": {"secret_key": "PGVECTOR_PASS", "default_value": "changeme"},
         "LANGCHAIN_API_KEY": {"secret_key": "LANGCHAIN_API_KEY", "default_value": ""},
+        "WA_API_KEY": {"secret_key": "WA_API_KEY", "default_value": ""},
     }
     for k, v in env_map.items():
         if st.secrets["KEYS"].get(v["secret_key"]):
@@ -121,36 +126,16 @@ if os.environ["LANGCHAIN_API_KEY"]:
     os.environ["LANGCHAIN_ENDPOINT"]= "https://api.smith.langchain.com"
     os.environ["LANGCHAIN_PROJECT"]= "Perplexis"
 
-# # (임시) Session ID값으로 Client IP를 사용 (추후 ID/PW 시스템으로 변경 필요)
-# def get_remote_ip() -> str:
-#     """Get remote ip."""
-
-#     try:
-#         ctx = get_script_run_ctx()
-#         if ctx is None:
-#             st.error(f"[ERROR] Client IP 확인 오류 발생: ctx is None")
-#             st.stop()
-
-#         session_info = runtime.get_instance().get_client(ctx.session_id)
-#         print(session_info.request)
-#         if session_info is None:
-#             st.error(f"[ERROR] Client IP 확인 오류 발생: session_info is None")
-#             st.stop()
-#     except Exception as e:
-#         st.error(f"[ERROR] Client IP 확인 오류 발생: {e}")
-#         st.stop()
-
-#     return session_info.request.remote_ip
-
 # Initialize session state with default values
 default_values = {
     'ai_role': None,
-    'chat_memory': None,
-    'llm_chain_conversation': None,
+    # 'chat_memory': None,
+    'agent_chat_history': [],
+    # 'llm_chain_conversation': None,
     'chat_response': None,
     'session_id': str(uuid.uuid4()),
-    # 'client_remote_ip': get_remote_ip(),
     'is_analyzed': False,
+    'agent_max_iterations': 3,
     'llm': None,
     'llm_top_p': 0.50,
     'llm_openai_presence_penalty': 0.00,
@@ -163,7 +148,6 @@ default_values = {
     'selected_ai': None,
     'selected_llm': None,
     'temperature': 0.20,
-    'chat_history_elapsed_time': [],
 }
 
 def init_session_state():
@@ -189,6 +173,17 @@ class StreamlitCallbackHandler(BaseCallbackHandler):
         self.text += token
         self.placeholder.write(self.text)
 
+### Wolfram|Alpha API
+class WA:
+    def __init__(self, app_id):
+        self.url = f"http://api.wolframalpha.com/v1/result?appid={app_id}&i="
+    def run(self, query):
+        query = query.replace("+", " plus ").replace("-", " minus ") # '+' and '-' are used in URI and cannot be used in request
+        result = requests.post(f"{self.url}{query}")
+        if not result.ok:
+            raise Exception("Cannot call WA API.")
+        return result.text
+
 #--------------------------------------------------
 
 def main():
@@ -203,12 +198,15 @@ def main():
         st.session_state['ai_role'] = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=0)
 
         st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
-        
 
         if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
             os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
             os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
 
+        os.environ["WA_API_KEY"] = st.text_input("**:red[Wolfram-Alpha API key]** [Link](https://products.wolframalpha.com/api/)", value=os.environ["WA_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+        
+        st.session_state['agent_max_iterations'] = st.number_input("agent_max_iterations", min_value=1, max_value=10, value=st.session_state.get('agent_max_iterations', 3), step=1, disabled=st.session_state['is_analyzed'])
+        
         if st.session_state.get('selected_embedding_provider', "Ollama") == "Ollama" or st.session_state.get('selected_ai', "Ollama") == "Ollama":
             os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
 
@@ -293,15 +291,35 @@ def main():
 
 #-----------------------------------------------------------------------------------------------------------
 
+    ### Web Search Tool 객체 생성
+    search = DuckDuckGoSearchRun()
+    # Web Search Tool
+    search_tool = Tool(
+        name = "Web Search",
+        func=search.run,
+        # description = f"A useful tool for searching the Internet to find information on world events, issues, etc. Worth using for general topics. Use precise questions.",
+        # description = f"A versatile tool for searching the Internet, useful for finding information on world events, technical documentation, software installation guides, and troubleshooting technical issues. Best used with precise queries.",
+        # description = f"{st.session_state['ai_role']} A versatile tool for searching the Internet, useful for finding information on world events, technical documentation, software installation guides, and troubleshooting technical issues. Best used with precise queries. The final response should be provided in Korean whenever possible.",
+        description = f"{st.session_state['ai_role']} A versatile tool for searching the Internet, useful for finding information on world events, technical documentation, software installation guides, and troubleshooting technical issues. Best used with precise queries. Additionally, responses should be as detailed and comprehensive as possible, providing in-depth explanations, step-by-step instructions, and relevant examples where applicable. The final response should be provided in Korean whenever possible.",
+    )
+
+    ### Wolfram|Alpha API Tool 객체 생성
+    wa = WA(app_id=os.environ["WA_API_KEY"])
+    wa_tool = Tool(
+        name="Wolfram|Alpha API",
+        func=wa.run,
+        description="Wolfram|Alpha API. It's super powerful Math tool. Use it for simple & complex math tasks."
+    )
+
     # system_prompt_content = "You are a chatbot having a conversation with a human."
     # system_prompt_content = "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations."
-    st.session_state['system_prompt_content'] = get_ai_role_and_sysetm_prompt(st.session_state.get('ai_role', "General AI Assistant"))
-    
-    # system_prompt = st.session_state['system_prompt_content']
 
-    ### Chat Memory 객체 생성 (최초 1회만 생성)
-    if st.session_state.get('chat_memory', None) is None:
-        st.session_state['chat_memory'] = ConversationBufferMemory(memory_key="chat_memory", return_messages=True)
+    st.session_state['system_prompt_content'] = get_ai_role_and_sysetm_prompt(st.session_state.get('ai_role', "General AI Assistant"))
+    system_prompt = st.session_state['system_prompt_content']
+
+    # ### Chat Memory 객체 생성 (최초 1회만 생성)
+    # if st.session_state.get('chat_memory', None) is None:
+    #     st.session_state['chat_memory'] = ConversationBufferMemory(memory_key="chat_memory", return_messages=True)
 
     # ### Chat Prompt 객체 생성
     # prompt = ChatPromptTemplate(
@@ -311,14 +329,6 @@ def main():
     #         HumanMessagePromptTemplate.from_template("{question}")
     #     ]
     # )
-
-    # ### Chat Conversation 객체 생성        
-    # st.session_state['llm_chain_conversation'] = LLMChain(
-    #     llm=st.session_state['llm'],
-    #     prompt=prompt,
-    #     memory=st.session_state['chat_memory'],
-    #     verbose=True,
-    # )        
 
     ## Container 선언 순서가 화면에 보여지는 순서 결정
     container_history = st.container()
@@ -331,8 +341,8 @@ def main():
             submit_button = st.form_submit_button(label='Send', help="Click to send your message", icon=":material/send:", type='primary')
 
         if submit_button and user_input:
-            streaming_placeholder = st.empty()  # 토큰 실시간 출력을 위한 컨테이너
-            callback_handler = StreamlitCallbackHandler(placeholder=streaming_placeholder)
+            # streaming_placeholder = st.empty()  # 토큰 실시간 출력을 위한 컨테이너
+            # callback_handler = StreamlitCallbackHandler(placeholder=streaming_placeholder)
 
             # LLM 재생성: streaming=True 및 callbacks 적용
             if st.session_state['selected_ai'] == "OpenAI":
@@ -341,8 +351,8 @@ def main():
                     model = st.session_state.get('selected_llm', "gpt-3.5-turbo"),
                     temperature = st.session_state.get('temperature', 0.00),
                     cache = False,
-                    streaming = True,
-                    callbacks = [callback_handler],
+                    streaming = False,
+                    # callbacks = [callback_handler],
                     presence_penalty = st.session_state.get('llm_openai_presence_penalty', 1.00),
                     frequency_penalty = st.session_state.get('llm_openai_frequency_penalty', 1.00),
                     stream_usage = False,
@@ -357,8 +367,8 @@ def main():
                     model = st.session_state.get('selected_llm', "gemma2:9b"),
                     temperature = st.session_state.get('temperature', 0.00),
                     cache = False,
-                    streaming = True,
-                    callbacks = [callback_handler],
+                    streaming = False,
+                    # callbacks = [callback_handler],
                     num_ctx = st.session_state.get('llm_ollama_num_ctx', 1024),
                     num_predict = st.session_state.get('llm_ollama_num_predict', -1),
                     repeat_penalty = st.session_state.get('llm_ollama_repeat_penalty', 1.00),
@@ -366,64 +376,107 @@ def main():
                     verbose = True,
                 )
 
-            # llm_chain_conversation 재생성 (새 llm 적용)
-            st.session_state['llm_chain_conversation'] = LLMChain(
+            # ### Chat Conversation 객체 생성        
+            # st.session_state['llm_chain_conversation'] = LLMChain(
+            #     llm=st.session_state['llm'],
+            #     prompt=prompt,
+            #     memory=st.session_state['chat_memory'],
+            #     verbose=True,
+            # )
+
+            # # llm_chain_conversation 재생성 (새 llm 적용)
+            # st.session_state['llm_chain_conversation'] = LLMChain(
+            #     llm=st.session_state['llm'],
+            #     prompt=ChatPromptTemplate(
+            #         messages=[
+            #             SystemMessagePromptTemplate.from_template(st.session_state['system_prompt_content']),
+            #             MessagesPlaceholder(variable_name="chat_memory"),
+            #             HumanMessagePromptTemplate.from_template("{question}")
+            #         ]
+            #     ),
+            #     memory=st.session_state['chat_memory'],
+            #     verbose=True,
+            # )
+
+            ### Agent 객체 생성
+            agent = initialize_agent(
+                agent="zero-shot-react-description",
+                # agent="structured-chat-zero-shot-react-description",
+                tools=[wa_tool, search_tool],
                 llm=st.session_state['llm'],
-                prompt=ChatPromptTemplate(
-                    messages=[
-                        SystemMessagePromptTemplate.from_template(st.session_state['system_prompt_content']),
-                        MessagesPlaceholder(variable_name="chat_memory"),
-                        HumanMessagePromptTemplate.from_template("{question}")
-                    ]
-                ),
-                memory=st.session_state['chat_memory'],
-                verbose=True,
+                # llm=st.session_state['llm_chain_conversation'],
+                verbose=True, # I will use verbose=True to check process of choosing tool by Agent
+                agent_max_iterations=3
             )
 
             with st.spinner('Thinking...'):
                 start_time = time.perf_counter()
-                response = st.session_state['llm_chain_conversation'].run({"question": user_input})
+                # response = st.session_state['llm_chain_conversation'].run({"question": user_input})
+                response = agent.run(user_input)
+                response = str(response)  # convert to plain string
+                print(f"[DEBUG] (response) ==> {response}")
                 st.session_state['chat_response'] = response
                 end_time = time.perf_counter()
-                st.session_state['chat_history_elapsed_time'].append(end_time - start_time)
+                elapsed_time = end_time - start_time
 
-            streaming_placeholder.empty()  # 추가: 스트리밍 출력 후 placeholder 비우기
+            # streaming_placeholder.empty()  # 추가: 스트리밍 출력 후 placeholder 비우기
+            
+            st.session_state["agent_chat_history"].append({
+                "role": "user",
+                "content": user_input.replace("\n", "\n\n"),
+            })
+            
+            st.session_state["agent_chat_history"].append({
+                "role": "assistant",
+                "content": st.session_state['chat_response'],
+                "agent_max_iterations": st.session_state["agent_max_iterations"],
+                "ai_role": st.session_state["ai_role"],
+                "selected_ai": st.session_state["selected_ai"],
+                "selected_llm": st.session_state["selected_llm"],
+                "temperature": st.session_state["temperature"],
+                "llm_top_p": st.session_state["llm_top_p"],
+                "llm_openai_presence_penalty": st.session_state["llm_openai_presence_penalty"],
+                "llm_openai_frequency_penalty": st.session_state["llm_openai_frequency_penalty"],
+                "llm_openai_max_tokens": st.session_state["llm_openai_max_tokens"],
+                "llm_ollama_repeat_penalty": st.session_state["llm_ollama_repeat_penalty"],
+                "llm_ollama_num_ctx": st.session_state["llm_ollama_num_ctx"],
+                "llm_ollama_num_predict": st.session_state["llm_ollama_num_predict"],
+                "elapsed_time": elapsed_time,
+            })
 
     ### container_history 처리
-    if st.session_state.get('chat_memory', None) is not None:
+    if st.session_state.get('agent_chat_history', None) is not None:
         with container_history:
-            caht_count = 0
-            for message in st.session_state['chat_memory'].chat_memory.messages:
-                if isinstance(message, HumanMessage):
+            for message in st.session_state['agent_chat_history']:
+                if message['role'] == "user":
                     with st.chat_message("user"):
                         st.markdown("**<span style='color: blue;'>You</span>**", unsafe_allow_html=True)
-                        st.write(message.content)
-                elif isinstance(message, AIMessage):
-                    answer_elapsed_time = st.session_state['chat_history_elapsed_time'][caht_count]
+                        st.write(message['content'])
+                else:
                     with st.chat_message("assistant"):
-                        st.markdown(f"**<span style='color: green;'>{st.session_state.get('ai_role', 'Unknown')}</span>**", unsafe_allow_html=True)
-                        st.write(message.content)
+                        st.markdown(f"**<span style='color: green;'>{message['ai_role']}</span>**", unsafe_allow_html=True)
+                        st.write(message['content'])
                         with st.expander("Show Metadata"):
                             st.markdown(
                                 f"""
                                 <div style="color: #2E9AFE; border: 1px solid #ddd; padding: 5px; background-color: #f9f9f9; border-radius: 5px; width: 100%;">
-                                    - <b>AI</b>: <font color=red>{st.session_state.get('selected_ai', 'Unknown')}</font><br>
-                                    - <b>LLM Model</b>: <font color=black>{st.session_state.get('selected_llm', 'Unknown')}</font><br>
-                                    - <b>LLM Args(Common) temperature</b>: <font color=black>{st.session_state.get('temperature', 'Unknown')}</font><br>
-                                    - <b>LLM Args(Common) top_p</b>: <font color=black>{st.session_state.get('llm_top_p', None)}</font><br>
-                                    - <b>LLM Args(OpenAI) presence_penalty</b>: <font color=black>{st.session_state.get('llm_openai_presence_penalty', None)}</font><br>
-                                    - <b>LLM Args(OpenAI) frequency_penalty</b>: <font color=black>{st.session_state.get('llm_openai_frequency_penalty', None)}</font><br>
-                                    - <b>LLM Args(OpenAI) max_tokens</b>: <font color=black>{st.session_state.get('llm_openai_max_tokens', None)}</font><br>
-                                    - <b>LLM Args(Ollama) repeat_penalty</b>: <font color=black>{st.session_state.get('llm_ollama_repeat_penalty', None)}</font><br>
-                                    - <b>LLM Args(Ollama) num_ctx</b>: <font color=black>{st.session_state.get('llm_ollama_num_ctx', None)}</font><br>
-                                    - <b>LLM Args(Ollama) num_predict</b>: <font color=black>{st.session_state.get('llm_ollama_num_predict', None)}</font><br>
-                                    - <b>Elapsed time</b>: <font color=black>{answer_elapsed_time:.0f} sec</font><br>
+                                    - <b>AI</b>: <font color=red>{message['selected_ai']}</font><br>
+                                    - <b>Agent Args(Common) agent_max_iterations</b>: <font color=black>{message['agent_max_iterations']}</font><br>
+                                    - <b>LLM Model(Common)</b>: <font color=black>{message['selected_llm']}</font><br>
+                                    - <b>LLM Args(Common) temperature</b>: <font color=black>{message['temperature']}</font><br>
+                                    - <b>LLM Args(Common) top_p</b>: <font color=black>{message['llm_top_p']}</font><br>
+                                    - <b>LLM Args(OpenAI) presence_penalty</b>: <font color=black>{message['llm_openai_presence_penalty']}</font><br>
+                                    - <b>LLM Args(OpenAI) frequency_penalty</b>: <font color=black>{message['llm_openai_frequency_penalty']}</font><br>
+                                    - <b>LLM Args(OpenAI) max_tokens</b>: <font color=black>{message['llm_openai_max_tokens']}</font><br>
+                                    - <b>LLM Args(Ollama) repeat_penalty</b>: <font color=black>{message['llm_ollama_repeat_penalty']}</font><br>
+                                    - <b>LLM Args(Ollama) num_ctx</b>: <font color=black>{message['llm_ollama_num_ctx']}</font><br>
+                                    - <b>LLM Args(Ollama) num_predict</b>: <font color=black>{message['llm_ollama_num_predict']}</font><br>
+                                    - <b>Elapsed time</b>: <font color=black>{message['elapsed_time']:.0f} sec</font><br>
                                 </div>
                                 """,
                                 unsafe_allow_html=True,
                             )
                             st.write("")
-                    caht_count += 1
 
 #----------------------------------------------------
 

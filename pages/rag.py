@@ -69,7 +69,7 @@ from langchain.callbacks.base import BaseCallbackHandler  # 추가
 
 # 페이지 정보 정의
 st.set_page_config(page_title="Perplexis:Rag", page_icon=":books:", layout="wide")
-st.title(":books: _:red[Perplexis]_ RAG")
+st.title(":material/quick_reference_all: _:red[Perplexis]_ RAG")
 
 ### Mandatory Keys 설정
 ### 1. secretes.toml 파일에 설정된 KEY 값이 최우선 적용.
