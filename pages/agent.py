@@ -11,7 +11,6 @@ from modules.common_functions import get_max_value_of_model_embedding_dimensions
 import streamlit as st
 # from streamlit_chat import message
 from streamlit_js_eval import streamlit_js_eval
-from streamlit import runtime
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 import uuid
@@ -19,6 +18,7 @@ from langchain.chains import create_history_aware_retriever, create_retrieval_ch
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import ConversationalRetrievalChain
 
+from langchain_openai import ChatOpenAI
 from langchain_ollama import OllamaLLM
 
 from langchain.chains import LLMChain
