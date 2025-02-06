@@ -32,7 +32,10 @@ from langchain.callbacks.base import BaseCallbackHandler  # 추가
 
 ### Agent 관련 모듈 추가 임포트
 from langchain.agents import initialize_agent, load_tools, Tool
+
 from langchain.tools import DuckDuckGoSearchRun
+from langchain.utilities import SerpAPIWrapper
+# from googlesearch import search
 
 #--------------------------------------------------
 
@@ -62,6 +65,7 @@ def set_env_vars():
         "PGVECTOR_PASS": {"secret_key": "PGVECTOR_PASS", "default_value": "changeme"},
         "LANGCHAIN_API_KEY": {"secret_key": "LANGCHAIN_API_KEY", "default_value": ""},
         "WA_API_KEY": {"secret_key": "WA_API_KEY", "default_value": ""},
+        "SERPAPI_API_KEY": {"secret_key": "SERPAPI_API_KEY", "default_value": ""},
     }
     for k, v in env_map.items():
         if st.secrets["KEYS"].get(v["secret_key"]):
@@ -243,10 +247,12 @@ def main():
 
     ### Web Search Tool 객체 생성
     search = DuckDuckGoSearchRun()
+    # search = SerpAPIWrapper()
+    
     # Web Search Tool
     search_tool = Tool(
         name = "Web Search",
-        func=search.run,
+        func = search.run,
         # description = f"A useful tool for searching the Internet to find information on world events, issues, etc. Worth using for general topics. Use precise questions.",
         # description = f"A versatile tool for searching the Internet, useful for finding information on world events, technical documentation, software installation guides, and troubleshooting technical issues. Best used with precise queries.",
         # description = f"{st.session_state['ai_role']} A versatile tool for searching the Internet, useful for finding information on world events, technical documentation, software installation guides, and troubleshooting technical issues. Best used with precise queries. The final response should be provided in Korean whenever possible.",
