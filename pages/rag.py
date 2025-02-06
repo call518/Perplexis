@@ -207,7 +207,6 @@ def google_search(query, num_results=10, lang="Any"):
             results = search(query, num_results=num_results)
         else:
             results = search(query, num_results=num_results, lang=lang)
-        
         if results:
             results_list = []
             for idx, result in enumerate(results, 1):
