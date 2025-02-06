@@ -313,13 +313,13 @@ def main():
         ]
     )
 
-    ### Chat Conversation 객체 생성        
-    st.session_state['chat_conversation'] = LLMChain(
-        llm=st.session_state['llm'],
-        prompt=prompt,
-        memory=st.session_state['chat_memory'],
-        verbose=True,
-    )        
+    # ### Chat Conversation 객체 생성        
+    # st.session_state['chat_conversation'] = LLMChain(
+    #     llm=st.session_state['llm'],
+    #     prompt=prompt,
+    #     memory=st.session_state['chat_memory'],
+    #     verbose=True,
+    # )        
 
     ## Container 선언 순서가 화면에 보여지는 순서 결정
     container_history = st.container()
