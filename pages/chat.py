@@ -253,40 +253,40 @@ def main():
                 st.error("Please enter the OpenAI API Key.")
                 st.stop()
 
-        # AI 모델 선택 및 초기화
-        if st.session_state['selected_ai'] == "OpenAI":
-            st.session_state['llm'] = ChatOpenAI(
-                base_url = os.environ["OPENAI_BASE_URL"],
-                model = st.session_state.get('selected_llm', "gpt-3.5-turbo"),
-                temperature = st.session_state.get('temperature', 0.00),
-                cache = False,
-                streaming = False,
-                presence_penalty = st.session_state.get('llm_openai_presence_penalty', 1.00),
-                frequency_penalty = st.session_state.get('llm_openai_frequency_penalty', 1.00),
-                stream_usage = False,
-                n = 1,
-                top_p = st.session_state.get('llm_top_p', 0.50),
-                max_tokens = st.session_state.get('llm_openai_max_tokens', 1024),
-                verbose = True,
-            )
-        else:
-            st.session_state['llm'] = OllamaLLM(
-                base_url = os.environ["OLLAMA_BASE_URL"],
-                model = st.session_state.get('selected_llm', "gemma2:9b"),
-                temperature = st.session_state.get('temperature', 0.00),
-                cache = False,
-                num_ctx = st.session_state.get('llm_ollama_num_ctx', 1024),
-                num_predict = st.session_state.get('llm_ollama_num_predict', -1),
-                # num_gpu = None,
-                # num_thread = None,
-                # repeat_last_n = None,
-                repeat_penalty = st.session_state.get('llm_ollama_repeat_penalty', 1.00),
-                # tfs_z = None,
-                # top_k = None,
-                top_p = st.session_state.get('llm_top_p', 0.80),
-                # format = "", # Literal['', 'json'] (default: "")
-                verbose = True,
-            )
+        # # AI 모델 선택 및 초기화
+        # if st.session_state['selected_ai'] == "OpenAI":
+        #     st.session_state['llm'] = ChatOpenAI(
+        #         base_url = os.environ["OPENAI_BASE_URL"],
+        #         model = st.session_state.get('selected_llm', "gpt-3.5-turbo"),
+        #         temperature = st.session_state.get('temperature', 0.00),
+        #         cache = False,
+        #         streaming = False,
+        #         presence_penalty = st.session_state.get('llm_openai_presence_penalty', 1.00),
+        #         frequency_penalty = st.session_state.get('llm_openai_frequency_penalty', 1.00),
+        #         stream_usage = False,
+        #         n = 1,
+        #         top_p = st.session_state.get('llm_top_p', 0.50),
+        #         max_tokens = st.session_state.get('llm_openai_max_tokens', 1024),
+        #         verbose = True,
+        #     )
+        # else:
+        #     st.session_state['llm'] = OllamaLLM(
+        #         base_url = os.environ["OLLAMA_BASE_URL"],
+        #         model = st.session_state.get('selected_llm', "gemma2:9b"),
+        #         temperature = st.session_state.get('temperature', 0.00),
+        #         cache = False,
+        #         num_ctx = st.session_state.get('llm_ollama_num_ctx', 1024),
+        #         num_predict = st.session_state.get('llm_ollama_num_predict', -1),
+        #         # num_gpu = None,
+        #         # num_thread = None,
+        #         # repeat_last_n = None,
+        #         repeat_penalty = st.session_state.get('llm_ollama_repeat_penalty', 1.00),
+        #         # tfs_z = None,
+        #         # top_k = None,
+        #         top_p = st.session_state.get('llm_top_p', 0.80),
+        #         # format = "", # Literal['', 'json'] (default: "")
+        #         verbose = True,
+        #     )
 
         if st.session_state.get('selected_mode', "Chat") == "Chat":
             if st.button("Reset", type='primary'):
@@ -296,7 +296,7 @@ def main():
 
     # system_prompt_content = "You are a chatbot having a conversation with a human."
     # system_prompt_content = "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations."
-    st.session_state['system_prompt_content'] = get_ai_role_and_sysetm_prompt(st.session_state.get('ai_role', "Basic chatbot"))
+    st.session_state['system_prompt_content'] = get_ai_role_and_sysetm_prompt(st.session_state.get('ai_role', "General AI Assistant"))
     
     system_prompt = st.session_state['system_prompt_content']
 
