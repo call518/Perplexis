@@ -8,6 +8,7 @@ import shutil
 import time
 import uuid
 import requests
+import json
 import fitz
 import bs4
 import chromadb
@@ -80,6 +81,7 @@ def set_env_var_if_not_exists(secret_key_name, env_var_name, default_val=""):
     """Checks environment variables or secrets for specific keys and sets defaults if missing."""
     if st.secrets["KEYS"].get(secret_key_name):
         os.environ[env_var_name] = st.secrets["KEYS"].get(secret_key_name)
+    # elif not os.environ.get(env_var_name):
     elif not os.environ.get(env_var_name):
         os.environ[env_var_name] = default_val
 
@@ -88,10 +90,10 @@ set_env_var_if_not_exists("OLLAMA_BASE_URL", "OLLAMA_BASE_URL", "http://localhos
 
 # Use the helper function to set environment variables for OPENAI
 set_env_var_if_not_exists("OPENAI_BASE_URL", "OPENAI_BASE_URL", "https://api.openai.com/v1")
-set_env_var_if_not_exists("OPENAI_API_KEY", "OPENAI_API_KEY", "")
+set_env_var_if_not_exists("OPENAI_API_KEY", "OPENAI_API_KEY")
 
 # Use the helper function to set environment variables for PINECONE
-set_env_var_if_not_exists("PINECONE_API_KEY", "PINECONE_API_KEY", "")
+set_env_var_if_not_exists("PINECONE_API_KEY", "PINECONE_API_KEY")
 
 # Use the helper function to set environment variables for PGVector
 set_env_var_if_not_exists("PGVECTOR_HOST", "PGVECTOR_HOST", "localhost")
@@ -99,6 +101,11 @@ set_env_var_if_not_exists("PGVECTOR_PORT", "PGVECTOR_PORT", "5432")
 set_env_var_if_not_exists("PGVECTOR_USER", "PGVECTOR_USER", "perplexis")
 set_env_var_if_not_exists("PGVECTOR_PASS", "PGVECTOR_PASS", "changeme")
 
+# google search api key & custom search engine id
+set_env_var_if_not_exists("GOOGLE_API_KEY", "GOOGLE_API_KEY")
+set_env_var_if_not_exists("GOOGLE_CSE_ID", "GOOGLE_CSE_ID")
+
+# langchain api key
 if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
     os.environ["LANGCHAIN_TRACING_V2"]= "true"
     os.environ["LANGCHAIN_ENDPOINT"]= "https://api.smith.langchain.com"
@@ -201,21 +208,41 @@ url_pattern = re.compile(
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 def google_search(query, num_results=10, lang="Any"):
-    """Executes a Google search and returns result links, stopping execution upon errors."""
+    results_list = []
     try:
-        if lang == "Any":
-            results = search(query, num_results=num_results)
+        ### Google Custom Search API 우선 사용
+        if os.environ.get("GOOGLE_API_KEY") and os.environ.get("GOOGLE_CSE_ID"):
+            ### (Document) https://developers.google.com/custom-search/docs/xml_results?hl=ko
+            url = "https://www.googleapis.com/customsearch/v1"
+            response = requests.get(url, params={
+                "key" : os.environ.get('GOOGLE_API_KEY'),
+                "cx" : os.environ.get('GOOGLE_CSE_ID'),
+                "q" : query,
+                "num": 10, # Maxixum 10
+            })
+            content = json.loads(response.content)
+            if content:
+                for idx, item in enumerate(content['items'], 1):
+                    link = item['link']
+                    print(f"[DEBUG] (Google API Search URLs) {idx}. {link}")
+                    results_list.append(link)
+                return results_list
+            else:
+                st.error("No search results found.")
+                st.stop()
         else:
-            results = search(query, num_results=num_results, lang=lang)
-        if results:
-            results_list = []
-            for idx, result in enumerate(results, 1):
-                results_list.append(result)
-                print(f"[DEBUG] (Google Search URLs) {idx}. {result}")
-            return results_list
-        else:
-            st.error("No search results found.")
-            st.stop()
+            if lang == "Any":
+                results = search(query, num_results=num_results)
+            else:
+                results = search(query, num_results=num_results, lang=lang)
+            if results:
+                for idx, link in enumerate(results, 1):
+                    print(f"[DEBUG] (Google Search URLs) {idx}. {link}")
+                    results_list.append(link)
+                return results_list
+            else:
+                st.error("No search results found.")
+                st.stop()
     except Exception as e:
         st.error(f"[ERROR] {e}")
         st.stop()
@@ -340,7 +367,11 @@ def main():
             st.session_state['google_custom_urls'] = st.text_area("Google Search Custom URLs (per Line)", placeholder="Enter Your Keywords", disabled=st.session_state['is_analyzed'])
             col_google_search_result_count, col_google_search_doc_lang = st.sidebar.columns(2)
             with col_google_search_result_count:
-                st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
+                if os.environ.get("GOOGLE_API_KEY") and os.environ.get("GOOGLE_CSE_ID"):
+                    search_result_max_count = 10
+                else:
+                    search_result_max_count = 50
+                st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=1, max_value=search_result_max_count, value=10, step=1, disabled=st.session_state['is_analyzed'])
             with col_google_search_doc_lang:
                 st.session_state['google_search_doc_lang'] = st.selectbox("Search Document Language", [ "Any", "en", "ko", "jp", "cn"], disabled=st.session_state['is_analyzed'])
         else:
@@ -506,6 +537,7 @@ def main():
                 
                 if st.session_state['document_type'] == "Google Search":
                     st.session_state['document_source'] = google_search(st.session_state['google_search_query'], num_results=st.session_state['google_search_result_count'], lang=st.session_state['google_search_doc_lang'])
+                    print(f"[DEBUG] (document_source) ----------------> {st.session_state['document_source']}")
                     if st.session_state['google_custom_urls']:
                         custom_urls = st.session_state['google_custom_urls'].splitlines()
                         for url in custom_urls:
