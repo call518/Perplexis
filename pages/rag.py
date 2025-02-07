@@ -77,7 +77,7 @@ st.title(":material/quick_reference_all: _:red[Perplexis]_ RAG")
 ### 2. secretes.toml 파일에 설정된 KEY 값이 없을 경우, os.environ 환경변수로 설정된 KEY 값이 적용.
 ### 3. secretes.toml 파일과 os.environ 환경변수 모두 설정되지 않은 경우, Default 값을 적용.
 
-def set_env_var_if_not_exists(secret_key_name, env_var_name, default_val=""):
+def set_env_var_if_not_exists(secret_key_name, env_var_name, default_val=None):
     """Checks environment variables or secrets for specific keys and sets defaults if missing."""
     if st.secrets["KEYS"].get(secret_key_name):
         os.environ[env_var_name] = st.secrets["KEYS"].get(secret_key_name)
@@ -90,10 +90,10 @@ set_env_var_if_not_exists("OLLAMA_BASE_URL", "OLLAMA_BASE_URL", "http://localhos
 
 # Use the helper function to set environment variables for OPENAI
 set_env_var_if_not_exists("OPENAI_BASE_URL", "OPENAI_BASE_URL", "https://api.openai.com/v1")
-set_env_var_if_not_exists("OPENAI_API_KEY", "OPENAI_API_KEY")
+set_env_var_if_not_exists("OPENAI_API_KEY", "OPENAI_API_KEY", None)
 
 # Use the helper function to set environment variables for PINECONE
-set_env_var_if_not_exists("PINECONE_API_KEY", "PINECONE_API_KEY")
+set_env_var_if_not_exists("PINECONE_API_KEY", "PINECONE_API_KEY", None)
 
 # Use the helper function to set environment variables for PGVector
 set_env_var_if_not_exists("PGVECTOR_HOST", "PGVECTOR_HOST", "localhost")
@@ -102,15 +102,15 @@ set_env_var_if_not_exists("PGVECTOR_USER", "PGVECTOR_USER", "perplexis")
 set_env_var_if_not_exists("PGVECTOR_PASS", "PGVECTOR_PASS", "changeme")
 
 # google search api key & custom search engine id
-set_env_var_if_not_exists("GOOGLE_API_KEY", "GOOGLE_API_KEY")
-set_env_var_if_not_exists("GOOGLE_CSE_ID", "GOOGLE_CSE_ID")
+set_env_var_if_not_exists("GOOGLE_API_KEY", "GOOGLE_API_KEY", None)
+set_env_var_if_not_exists("GOOGLE_CSE_ID", "GOOGLE_CSE_ID", None)
 
 # langchain api key
-if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", ""):
-    os.environ["LANGCHAIN_TRACING_V2"]= "true"
-    os.environ["LANGCHAIN_ENDPOINT"]= "https://api.smith.langchain.com"
+if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", None):
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
     os.environ["LANGCHAIN_API_KEY"] = st.secrets["KEYS"].get("LANGCHAIN_API_KEY", "")
-    os.environ["LANGCHAIN_PROJECT"]= "Perplexis"
+    os.environ["LANGCHAIN_PROJECT"] = "Perplexis"
 
 def get_remote_ip() -> str:
     """Get remote ip."""
@@ -207,10 +207,11 @@ url_pattern = re.compile(
     r'(?::\d+)?'  # 포트 번호
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
-def google_search(query, num_results=10, lang="Any"):
+def google_search(query, num_results=10, lang="English(en)"):
     results_list = []
+    lang = re.search(r"\((.*?)\)", lang).group(1)
     try:
-        ### Google Custom Search API 우선 사용
+        ### (최우선) Google Custom Search API 우선 사용
         if os.environ.get("GOOGLE_API_KEY") and os.environ.get("GOOGLE_CSE_ID"):
             ### (Document) https://developers.google.com/custom-search/docs/xml_results?hl=ko
             url = "https://www.googleapis.com/customsearch/v1"
@@ -219,6 +220,8 @@ def google_search(query, num_results=10, lang="Any"):
                 "cx" : os.environ.get('GOOGLE_CSE_ID'),
                 "q" : query,
                 "num": 10, # Maxixum 10
+                "lr": f'lang_{lang}',
+                "hl": lang,
             })
             content = json.loads(response.content)
             if content:
@@ -230,11 +233,9 @@ def google_search(query, num_results=10, lang="Any"):
             else:
                 st.error("No search results found.")
                 st.stop()
+        ### (차선) Google Custom Search API 미사용 시, Google Search 사용
         else:
-            if lang == "Any":
-                results = search(query, num_results=num_results)
-            else:
-                results = search(query, num_results=num_results, lang=lang)
+            results = search(query, num_results=num_results, lang=lang)
             if results:
                 for idx, link in enumerate(results, 1):
                     print(f"[DEBUG] (Google Search URLs) {idx}. {link}")
@@ -373,7 +374,7 @@ def main():
                     search_result_max_count = 50
                 st.session_state['google_search_result_count'] = st.number_input("Search Results", min_value=1, max_value=search_result_max_count, value=10, step=1, disabled=st.session_state['is_analyzed'])
             with col_google_search_doc_lang:
-                st.session_state['google_search_doc_lang'] = st.selectbox("Search Document Language", [ "Any", "en", "ko", "jp", "cn"], disabled=st.session_state['is_analyzed'])
+                st.session_state['google_search_doc_lang'] = st.selectbox("Search Document Language", ["Afrikaans(af)", "Albanian(sq)", "Amharic(am)", "Arabic(ar)", "Armenian(hy)", "Azerbaijani(az)", "Bengali(bn)", "Bulgarian(bg)", "Burmese(my)", "Catalan(ca)", "Chinese (Simplified)(zh-CN)", "Chinese (Traditional)(zh-TW)", "Croatian(hr)", "Czech(cs)", "Danish(da)", "Dutch(nl)", "English(en)", "English (UK)(en-GB)", "Estonian(et)", "Filipino(fil)", "Finnish(fi)", "French(fr)", "French (Canadian)(fr-CA)", "Georgian(ka)", "German(de)", "Greek(el)", "Gujarati(gu)", "Hebrew(iw)", "Hindi(hi)", "Hungarian(hu)", "Icelandic(is)", "Indonesian(id)", "Italian(it)", "Japanese(ja)", "Kannada(kn)", "Kazakh(kk)", "Khmer(km)", "Korean(ko)", "Kyrgyz(ky)", "Laothian(lo)", "Latvian(lv)", "Lithuanian(lt)", "Macedonian(mk)", "Malay(ms)", "Malayam(ml)", "Marathi(mr)", "Mongolian(mn)", "Nepali(ne)", "Norwegian (Bokmal)(no)", "Persian(fa)", "Polish(pl)", "Portuguese (Brazil)(pt-BR)", "Portuguese (Portugal)(pt-PT)", "Punjabi(pa)", "Romanian(ro)", "Russian(ru)", "Serbian(sr)", "Serbian (Latin)(sr-Latn)", "Sinhalese(si)", "Slovak(sk)", "Slovenian(sl)", "Spanish(es)", "Spanish (Latin America)(es-419)", "Swahili(sw)", "Swedish(sv)", "Tamil(ta)", "Telugu(te)", "Thai(th)", "Turkish(tr)", "Ukrainian(uk)", "Urdu(ur)", "Uzbek(uz)", "Vietnamese(vi)", "Welsh(cy)"], index=16, disabled=st.session_state['is_analyzed'])
         else:
             st.error("[ERROR] Unsupported document type")
             st.stop()
@@ -388,10 +389,10 @@ def main():
         
         if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
             os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password")
-            os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
+            os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ.get("OPENAI_BASE_URL"), disabled=st.session_state['is_analyzed'])
     
         if st.session_state.get('selected_embedding_provider', "Ollama") == "Ollama" or st.session_state.get('selected_ai', "Ollama") == "Ollama":
-            os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
+            os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ.get("OLLAMA_BASE_URL"), disabled=st.session_state['is_analyzed'])
     
         if st.session_state['vectorstore_type'] == "ChromaDB":
             st.session_state['chromadb_root_reset'] = st.checkbox("Reset ChromaDB", value=st.session_state.get('chromadb_root_reset', True), disabled=st.session_state['is_analyzed'])
@@ -401,12 +402,12 @@ def main():
             st.session_state['pgvector_db_reset'] = st.checkbox("Reset PGVector", value=st.session_state.get('pgvector_db_reset', True), disabled=st.session_state['is_analyzed'])
 
             if st.session_state['pgvector_connection'] is None:
-                st.session_state['pgvector_connection'] = f"postgresql+psycopg://{os.environ['PGVECTOR_USER']}:{os.environ['PGVECTOR_PASS']}@{os.environ['PGVECTOR_HOST']}:{os.environ['PGVECTOR_PORT']}/perplexis"
+                st.session_state['pgvector_connection'] = f"postgresql+psycopg://{os.environ.get('PGVECTOR_USER')}:{os.environ.get('PGVECTOR_PASS')}@{os.environ.get('PGVECTOR_HOST')}:{os.environ.get('PGVECTOR_PORT')}/perplexis"
             st.session_state['pgvector_connection'] = st.text_input("PGVector Connection", value=st.session_state['pgvector_connection'], type="password",  disabled=st.session_state['is_analyzed'])
             st.session_state['pgvector_similarity'] = st.selectbox("PGVector Similarity", ["cosine", "euclidean", "dotproduct"], index=0, disabled=st.session_state['is_analyzed'])
     
         if st.session_state['vectorstore_type'] == "Pinecone":
-            os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ["PINECONE_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+            os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ.get("PINECONE_API_KEY"), type="password", disabled=st.session_state['is_analyzed'])
             st.session_state['pinecone_index_reset'] = st.checkbox("Reset Pinecone Index", value=st.session_state.get('pinecone_index_reset', False), disabled=st.session_state['is_analyzed'])
             st.session_state['pinecone_similarity'] = st.selectbox("Pinecone Similarity", ["cosine", "l2", "inner"], index=0, disabled=st.session_state['is_analyzed'])
 
@@ -447,7 +448,7 @@ def main():
             with col_rag_arg1:
                 st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
             with col_rag_arg2:
-                st.session_state['rag_score_threshold'] = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.70, step=0.05, disabled=st.session_state['is_analyzed'])
+                st.session_state['rag_score_threshold'] = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "similarity":
             st.session_state['rag_top_k'] = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state['is_analyzed'])
         elif st.session_state['rag_search_type'] == "mmr":
@@ -484,23 +485,23 @@ def main():
                 print(f"[DEBUG] (llm_ollama_num_predict) {st.session_state['llm_ollama_num_predict']}")
 
         if st.session_state.get('selected_embedding_provider', "Ollama") == "OpenAI" or st.session_state.get('selected_ai', "Ollama") == "OpenAI":
-            if not os.environ["OPENAI_API_KEY"]:
+            if not os.environ.get("OPENAI_API_KEY"):
                 st.error("Please enter the OpenAI API Key.")
                 st.stop()
 
         if st.session_state.get('vectorstore_type', 'Pinecone') == "Pinecone":
-            if not os.environ["PINECONE_API_KEY"]:
+            if not os.environ.get("PINECONE_API_KEY"):
                 st.error("Please enter the Pinecone API Key.")
                 st.stop()
 
         if st.session_state['selected_embedding_provider'] == "OpenAI":
             st.session_state['embedding_instance'] = OpenAIEmbeddings(
-                base_url = os.environ["OPENAI_BASE_URL"],
+                base_url = os.environ.get("OPENAI_BASE_URL"),
                 model = st.session_state.get('selected_embedding_model', None),
             )
         else:
             st.session_state['embedding_instance'] = OllamaEmbeddings(
-                base_url = os.environ["OLLAMA_BASE_URL"],
+                base_url = os.environ.get("OLLAMA_BASE_URL"),
                 model = st.session_state.get('selected_embedding_model', None),
             )
 
@@ -740,7 +741,7 @@ def main():
             ### LLM 제정의
             if st.session_state['selected_ai'] == "OpenAI":
                 st.session_state['llm'] = ChatOpenAI(
-                    base_url = os.environ["OPENAI_BASE_URL"],
+                    base_url = os.environ.get("OPENAI_BASE_URL"),
                     model = st.session_state['selected_llm'],
                     temperature = st.session_state['temperature'],
                     cache = False,
@@ -757,7 +758,7 @@ def main():
                 )
             else:
                 st.session_state['llm'] = OllamaLLM(
-                    base_url = os.environ["OLLAMA_BASE_URL"],
+                    base_url = os.environ.get("OLLAMA_BASE_URL"),
                     model = st.session_state['selected_llm'],
                     temperature = st.session_state['temperature'],
                     cache = False,
