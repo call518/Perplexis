@@ -389,9 +389,9 @@ def main():
 
             with st.spinner('Thinking...'):
                 start_time = time.perf_counter()
-                response = agent_chain.run(user_input)
+                # response = agent_chain.run(user_input)
                 response = agent_chain.run(input=user_input)
-                response = str(response) # convert to plain string
+                response = str(response).strip() # convert to plain string
                 # print(f"[DEBUG] (response) ====> {response}")
                 st.session_state['chat_response'] = response
                 end_time = time.perf_counter()
