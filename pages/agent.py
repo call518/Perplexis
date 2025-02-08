@@ -46,8 +46,7 @@ from langchain.tools import DuckDuckGoSearchRun
 from langchain.utilities import SerpAPIWrapper
 from langchain.utilities import ArxivAPIWrapper
 from langchain.utilities import WikipediaAPIWrapper
-from langchain.chains.llm_math.base import LLMMathChain
-# from googlesearch import search
+# from langchain.chains.llm_math.base import LLMMathChain
 
 #--------------------------------------------------
 
@@ -76,7 +75,7 @@ def set_env_vars():
         "PGVECTOR_USER": {"secret_key": "PGVECTOR_USER", "default_value": "perplexis"},
         "PGVECTOR_PASS": {"secret_key": "PGVECTOR_PASS", "default_value": "changeme"},
         "LANGCHAIN_API_KEY": {"secret_key": "LANGCHAIN_API_KEY", "default_value": ""},
-        # "WA_API_KEY": {"secret_key": "WA_API_KEY", "default_value": ""},
+        "WA_API_KEY": {"secret_key": "WA_API_KEY", "default_value": ""},
         "SERPAPI_API_KEY": {"secret_key": "SERPAPI_API_KEY", "default_value": ""},
     }
     for k, v in env_map.items():
@@ -96,14 +95,14 @@ if os.environ["LANGCHAIN_API_KEY"]:
 default_values = {
     'ai_role': None,
     'ai_agent_chain': None,
+    'ai_agent_type_name': None,
     'chat_memory': None,
     'chat_memory_placeholder': None,
-    'agent_chat_history': [],
-    # 'llm_chain_conversation': None,
+    'ui_chat_history_array': [],
     'chat_response': None,
     'session_id': str(uuid.uuid4()),
     'is_analyzed': False,
-    'agent_max_iterations': 5,
+    'agent_max_iterations': 3,
     'llm': None,
     'llm_top_p': 0.50,
     'llm_openai_presence_penalty': 0.00,
@@ -154,35 +153,34 @@ class WA:
 
 #-------------------- Agetn 관련 함수 및 Tool 정의 --------------------
 ### Agent 객체 생성 함수
-def create_agent_chain(llm):
+def create_agent_chain():
+    if st.session_state['llm'] is None:
+        st.error("Please set the AI LLM model.")
+        st.stop()
+        
     ### Define AI Agent and TOols
     if st.session_state.get('chat_memory', None) is None:
         st.session_state['chat_memory'] = ConversationBufferMemory(memory_key="chat_memory", return_messages=True)
-        # st.session_state['chat_memory'] = MessagesPlaceholder(variable_name="chat_memory")
 
-    if st.session_state.get('chat_history', None) is None:
+    if st.session_state.get('chat_memory_placeholder', None) is None:
         st.session_state['chat_memory_placeholder'] = MessagesPlaceholder(variable_name="chat_memory")
 
-    common_system_prompt = "write your final answer in Korean with as much detail as possible."
+    # common_system_prompt = "Write final answer in Korean."
+    common_system_prompt = "최종 답변은 반드시 한국어로 작성해야 한다."
+    # common_system_prompt = "Write final answer in Korean with as much detail as possible."
     # st.session_state['system_prompt_content'] = get_ai_role_and_sysetm_prompt(st.session_state.get('ai_role', "General AI Assistant")) + " Write final answer in Korean."
     st.session_state['system_prompt_content'] = get_ai_role_and_sysetm_prompt(st.session_state.get('ai_role', "General AI Assistant")) + " " + common_system_prompt
-    print(f"[DEBUG] (system_prompt_content) ---------> {st.session_state['system_prompt_content']}")
     system_message = SystemMessage(content=st.session_state['system_prompt_content'])
-
+    
     ### Agent Tool 설정
-    # tool_wa = WA(app_id=os.environ["WA_API_KEY"])
-    tool_search = DuckDuckGoSearchRun()
-    # tool_search = SerpAPIWrapper()
+    # tool_search = DuckDuckGoSearchRun()
+    tool_search = SerpAPIWrapper()
     tool_arxiv = ArxivAPIWrapper()
     tool_wikipedia = WikipediaAPIWrapper()
-    tool_calculator = LLMMathChain.from_llm(llm=llm, verbose=True)
+    # tool_calculator = LLMMathChain.from_llm(llm=st.session_state['llm'], verbose=True)
+    tool_wa = WA(app_id=os.environ["WA_API_KEY"])
 
     agent_tools = [
-        # Tool(
-        #     name="Wolfram|Alpha API",
-        #     func=tool_wa.run,
-        #     description="Wolfram|Alpha API. It's super powerful Math tool. Use it for simple & complex math tasks."
-        # ),
         Tool(
             name = "Web Search",
             func = tool_search.run,
@@ -199,34 +197,57 @@ def create_agent_chain(llm):
             func = tool_wikipedia.run,
             description = "useful when you need an answer about encyclopedic general knowledge"
         ),
+        # Tool(
+        #     name = "Calculator",
+        #     func = tool_calculator.run,
+        #     description = "useful for when you need to answer questions about math"
+        # ),
         Tool(
-            name = "Calculator",
-            func = tool_calculator.run,
-            description = "useful for when you need to answer questions about math"
+            name="Wolfram|Alpha API",
+            func=tool_wa.run,
+            description="Wolfram|Alpha API. It's super powerful Math tool. Use it for simple & complex math tasks."
         ),
     ]
+
+    # # SELF_ASK_WITH_SEARCH 에이전트는 단 하나의 도구만 허용하므로 Web Search만 사용
+    # if st.session_state['ai_agent_type_name'] == "SELF_ASK_WITH_SEARCH":
+    #     agent_tools = [
+    #         Tool(
+    #             name = "Intermediate Answer",
+    #             func = tool_search.run,
+    #             description = "useful for when you need to answer questions about current events. You should ask targeted questions",
+    #         )
+    #     ]
 
     ### aget_kwargs 설정
     agent_kwargs = {
         "system_message": system_message,
-        "extra_prompt_messages": [MessagesPlaceholder(variable_name="memory")],
+        "extra_prompt_messages": [MessagesPlaceholder(variable_name="chat_memory")],
         "memory_prompts": [st.session_state['chat_memory_placeholder']],
     }
 
     ### Agent 객체 생성
     agent_chain = initialize_agent(
+        agent = getattr(AgentType, st.session_state['ai_agent_type_name']),
+        # agent=AgentType.CONVERSATIONAL_REACT_DESCRIPTION, # <---- 사용금지 (동작 문제는 없으나, chat memory 관련 코드 전면 수정 필요)
         # agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-        # tools=[wa_tool, search_tool],
+        # agent=AgentType.SELF_ASK_WITH_SEARCH,
+        # agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+        # agent=AgentType.CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+        # agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
+        # agent=AgentType.REACT_DOCSTORE,
+        # agent=AgentType.OPENAI_FUNCTIONS,
+        # agent=AgentType.OPENAI_MULTI_FUNCTIONS,
         tools=agent_tools,
         llm=st.session_state['llm'],
-        # llm=st.session_state['llm_chain_conversation'], # <---- 동작 안함, 에러 발생
+        early_stopping_method='generate',
         agent_kwargs=agent_kwargs,
         handle_parsing_errors=True,
         agent_max_iterations=st.session_state['agent_max_iterations'],
         memory=st.session_state['chat_memory'],
         verbose=True, # I will use verbose=True to check process of choosing tool by Agent
     )
+    
     return agent_chain
 
 #--------------------------------------------------
@@ -240,17 +261,31 @@ def main():
     with st.sidebar:
         st.title("Parameters")
 
-        st.session_state['ai_role'] = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=0)
-
         st.session_state['selected_ai'] = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state['is_analyzed'])
 
         if st.session_state.get('selected_ai', "Ollama") == "OpenAI":
             os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
             os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state['is_analyzed'])
 
-        # os.environ["WA_API_KEY"] = st.text_input("**:red[Wolfram-Alpha API key]** [Link](https://products.wolframalpha.com/api/)", value=os.environ["WA_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
+        st.session_state['ai_role'] = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=0, disabled=st.session_state['is_analyzed'])
+
+        ai_agent_types = [
+            "ZERO_SHOT_REACT_DESCRIPTION",
+            "STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION",
+            # "CHAT_ZERO_SHOT_REACT_DESCRIPTION",
+            #"CHAT_CONVERSATIONAL_REACT_DESCRIPTION",
+            #"CONVERSATIONAL_REACT_DESCRIPTION",
+            #"SELF_ASK_WITH_SEARCH",
+            #"REACT_DOCSTORE",
+            #"OPENAI_FUNCTIONS",
+            #"OPENAI_MULTI_FUNCTIONS",
+        ]
+
+        st.session_state['ai_agent_type_name'] = st.selectbox("Agent Type", ai_agent_types, index=0, disabled=st.session_state['is_analyzed'])
+
+        os.environ["WA_API_KEY"] = st.text_input("**:red[Wolfram-Alpha API key]** [Link](https://products.wolframalpha.com/api/)", value=os.environ["WA_API_KEY"], type="password", disabled=st.session_state['is_analyzed'])
         
-        st.session_state['agent_max_iterations'] = st.number_input("Agent Max Iterations", min_value=1, max_value=10, value=st.session_state.get('agent_max_iterations', 5), step=1, disabled=st.session_state['is_analyzed'])
+        st.session_state['agent_max_iterations'] = st.number_input("Agent Max Iterations", min_value=1, max_value=10, value=st.session_state.get('agent_max_iterations', 3), step=1, disabled=st.session_state['is_analyzed'])
         
         if st.session_state.get('selected_embedding_provider', "Ollama") == "Ollama" or st.session_state.get('selected_ai', "Ollama") == "Ollama":
             os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state['is_analyzed'])
@@ -260,7 +295,7 @@ def main():
             if st.session_state['selected_ai'] == "OpenAI":
                 st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4, disabled=st.session_state['is_analyzed'])
             else:
-                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3.2:1b", "llama3:8b", "llama3.2:3b", "codegemma:2b", "codegemma:7b", "mistral:7b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5"], index=1, disabled=st.session_state['is_analyzed'])
+                st.session_state['selected_llm'] = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3.2:1b", "llama3:8b", "llama3.2:3b", "codegemma:2b", "codegemma:7b", "mistral:7b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5"], index=0, disabled=st.session_state['is_analyzed'])
         with col_ai_temperature:
             # st.session_state['temperature'] = st.text_input("LLM Temperature (0.0 ~ 1.0)", value=st.session_state['temperature'])
             st.session_state['temperature'] = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state['temperature'], step=0.05, disabled=st.session_state['is_analyzed'])
@@ -312,6 +347,9 @@ def main():
             submit_button = st.form_submit_button(label='Send', help="Click to send your message", icon=":material/send:", type='primary')
 
         if submit_button and user_input:
+            ### 파라메터 잠금 처리
+            st.session_state['is_analyzed'] = True
+            
             # LLM 재생성: streaming=True 및 callbacks 적용
             if st.session_state['selected_ai'] == "OpenAI":
                 st.session_state['llm'] = ChatOpenAI(
@@ -347,24 +385,24 @@ def main():
             ### Agent 객체 생성
             agent_chain = st.session_state['ai_agent_chain']
             if agent_chain is None:
-                agent_chain = create_agent_chain(st.session_state['llm'])
+                agent_chain = create_agent_chain()
 
             with st.spinner('Thinking...'):
                 start_time = time.perf_counter()
-                # response = st.session_state['llm_chain_conversation'].run({"question": user_input})
                 response = agent_chain.run(user_input)
-                response = str(response)  # convert to plain string
-                print(f"[DEBUG] (response) ==> {response}")
+                response = agent_chain.run(input=user_input)
+                response = str(response) # convert to plain string
+                # print(f"[DEBUG] (response) ====> {response}")
                 st.session_state['chat_response'] = response
                 end_time = time.perf_counter()
                 elapsed_time = end_time - start_time
 
-            st.session_state["agent_chat_history"].append({
+            st.session_state["ui_chat_history_array"].append({
                 "role": "user",
                 "content": user_input.replace("\n", "\n\n"),
             })
             
-            st.session_state["agent_chat_history"].append({
+            st.session_state["ui_chat_history_array"].append({
                 "role": "assistant",
                 "content": st.session_state['chat_response'],
                 "agent_max_iterations": st.session_state["agent_max_iterations"],
@@ -383,9 +421,9 @@ def main():
             })
 
     ### container_history 처리
-    if st.session_state.get('agent_chat_history', None) is not None:
+    if st.session_state.get('ui_chat_history_array', None) is not None:
         with container_history:
-            for message in st.session_state['agent_chat_history']:
+            for message in st.session_state['ui_chat_history_array']:
                 if message['role'] == "user":
                     with st.chat_message("user"):
                         st.markdown("**<span style='color: blue;'>You</span>**", unsafe_allow_html=True)
@@ -421,9 +459,10 @@ def main():
 if __name__ == "__main__":
     Navbar()
     
-    main()
-    # # Error 메세지/코드 숨기기
-    # try:
-    #     main()
-    # except Exception as e:
-    #     print(f"An error occurred: {e}")
+    # main()
+    
+    # Error 메세지/코드 숨기기
+    try:
+        main()
+    except Exception as e:
+        print(f"An error occurred: {e}")
