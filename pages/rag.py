@@ -77,7 +77,7 @@ st.title(":material/quick_reference_all: _:red[Perplexis]_ RAG")
 ### 2. secretes.toml 파일에 설정된 KEY 값이 없을 경우, os.environ 환경변수로 설정된 KEY 값이 적용.
 ### 3. secretes.toml 파일과 os.environ 환경변수 모두 설정되지 않은 경우, Default 값을 적용.
 
-def set_env_var_if_not_exists(secret_key_name, env_var_name, default_val=None):
+def set_env_var_if_not_exists(secret_key_name, env_var_name, default_val=""):
     """Checks environment variables or secrets for specific keys and sets defaults if missing."""
     if st.secrets["KEYS"].get(secret_key_name):
         os.environ[env_var_name] = st.secrets["KEYS"].get(secret_key_name)
@@ -90,10 +90,10 @@ set_env_var_if_not_exists("OLLAMA_BASE_URL", "OLLAMA_BASE_URL", "http://localhos
 
 # Use the helper function to set environment variables for OPENAI
 set_env_var_if_not_exists("OPENAI_BASE_URL", "OPENAI_BASE_URL", "https://api.openai.com/v1")
-set_env_var_if_not_exists("OPENAI_API_KEY", "OPENAI_API_KEY", None)
+set_env_var_if_not_exists("OPENAI_API_KEY", "OPENAI_API_KEY")
 
 # Use the helper function to set environment variables for PINECONE
-set_env_var_if_not_exists("PINECONE_API_KEY", "PINECONE_API_KEY", None)
+set_env_var_if_not_exists("PINECONE_API_KEY", "PINECONE_API_KEY")
 
 # Use the helper function to set environment variables for PGVector
 set_env_var_if_not_exists("PGVECTOR_HOST", "PGVECTOR_HOST", "localhost")
@@ -102,8 +102,8 @@ set_env_var_if_not_exists("PGVECTOR_USER", "PGVECTOR_USER", "perplexis")
 set_env_var_if_not_exists("PGVECTOR_PASS", "PGVECTOR_PASS", "changeme")
 
 # google search api key & custom search engine id
-set_env_var_if_not_exists("GOOGLE_API_KEY", "GOOGLE_API_KEY", None)
-set_env_var_if_not_exists("GOOGLE_CSE_ID", "GOOGLE_CSE_ID", None)
+set_env_var_if_not_exists("GOOGLE_API_KEY", "GOOGLE_API_KEY")
+set_env_var_if_not_exists("GOOGLE_CSE_ID", "GOOGLE_CSE_ID")
 
 # langchain api key
 if st.secrets["KEYS"].get("LANGCHAIN_API_KEY", None):
