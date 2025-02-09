@@ -43,6 +43,7 @@ from langchain.callbacks.base import BaseCallbackHandler  # 추가
 
 ### Agent 관련 모듈 추가 임포트
 from langchain.agents import initialize_agent, load_tools, Tool, AgentType
+from langchain.agents.format_scratchpad import format_log_to_messages
 
 from langchain.tools import DuckDuckGoSearchRun
 from langchain_community.utilities import SerpAPIWrapper
@@ -99,7 +100,7 @@ default_values = {
     'ai_agent_chain': None,
     'ai_agent_type_name': None,
     'chat_memory': None,
-    'chat_memory_placeholder': None,
+    # 'chat_memory_placeholder': None,
     'ui_chat_history_array': [],
     'chat_response': None,
     'session_id': str(uuid.uuid4()),
@@ -164,8 +165,8 @@ def create_agent_chain():
     if st.session_state.get('chat_memory', None) is None:
         st.session_state['chat_memory'] = ConversationBufferMemory(memory_key="chat_memory", return_messages=True)
 
-    if st.session_state.get('chat_memory_placeholder', None) is None:
-        st.session_state['chat_memory_placeholder'] = MessagesPlaceholder(variable_name="chat_memory")
+    # if st.session_state.get('chat_memory_placeholder', None) is None:
+    #     st.session_state['chat_memory_placeholder'] = MessagesPlaceholder(variable_name="chat_memory")
 
     # common_system_prompt = "Write final answer in Korean."
     common_system_prompt = "최종 답변은 반드시 한국어로 작성해야 한다."
@@ -174,6 +175,36 @@ def create_agent_chain():
     st.session_state['system_prompt_content'] = get_ai_role_and_sysetm_prompt(st.session_state.get('ai_role', "General AI Assistant")) + " " + common_system_prompt
     print(f"[DEBUG] (system_prompt_content) -------> {st.session_state['system_prompt_content']}")
     system_message = SystemMessage(content=st.session_state['system_prompt_content'])
+
+    PREFIX = '''You are an AI data scientist. You have done years of research in studying all the AI algorthims. You also love to write. On free time you write blog post for articulating what you have learned about different AI algorithms. Do not forget to include information on the algorithm's benefits, disadvantages, and applications. Additionally, the blog post should explain how the algorithm advances model reasoning by a whopping 70% and how it is a plug in and play version, connecting seamlessly to other components.
+    '''
+
+    FORMAT_INSTRUCTIONS = """To use a tool, please use the following format:
+    '''
+    Thought: Do I need to use a tool? Yes
+    Action: the action to take, should be one of [{tool_names}]
+    Action Input: the input to the action
+    Observation: the result of the action
+    '''
+
+    When you have gathered all the information regarding AI algorithm, just write it to the user in the form of a blog post.
+
+    '''
+    Thought: Do I need to use a tool? No
+    AI: [write a blog post]
+    '''
+    """
+
+    SUFFIX = '''
+
+    Begin!
+
+    Previous conversation history:
+    {chat_history}
+
+    Instructions: {input}
+    {agent_scratchpad}
+    '''
     
     ### Agent Tool 설정
     # tool_search = DuckDuckGoSearchRun()
@@ -222,13 +253,6 @@ def create_agent_chain():
     #         )
     #     ]
 
-    ### aget_kwargs 설정
-    agent_kwargs = {
-        "system_message": system_message,
-        "extra_prompt_messages": [MessagesPlaceholder(variable_name="chat_memory")],
-        "memory_prompts": [st.session_state['chat_memory_placeholder']],
-    }
-
     ### Agent 객체 생성
     agent_chain = initialize_agent(
         agent = getattr(AgentType, st.session_state['ai_agent_type_name']),
@@ -244,7 +268,14 @@ def create_agent_chain():
         tools=agent_tools,
         llm=st.session_state['llm'],
         early_stopping_method='generate',
-        agent_kwargs=agent_kwargs,
+        agent_kwargs={
+            # "system_message": system_message,
+            "prefix": st.session_state['system_prompt_content'],
+            # "format_instructions": FORMAT_INSTRUCTIONS,
+            # "suffix": SUFFIX
+            "extra_prompt_messages": [MessagesPlaceholder(variable_name="chat_memory")],
+            # "memory_prompts": [st.session_state['chat_memory_placeholder']],
+        },
         handle_parsing_errors=True,
         agent_max_iterations=st.session_state['agent_max_iterations'],
         memory=st.session_state['chat_memory'],

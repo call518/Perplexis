@@ -5,4 +5,4 @@ def Navbar():
         st.page_link('main.py', label='Home', icon=':material/home:')
         st.page_link('pages/chat.py', label='Chat', icon=':material/chat_bubble:')
         st.page_link('pages/rag.py', label='RAG', icon=':material/quick_reference_all:')
-        st.page_link('pages/agent.py', label='Agent', icon=':material/support_agent:')
+        # st.page_link('pages/agent.py', label='Agent', icon=':material/support_agent:')
