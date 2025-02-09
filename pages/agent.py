@@ -39,13 +39,15 @@ import time
 
 from langchain.callbacks.base import BaseCallbackHandler  # 추가
 
+# from langchain.agents.agent_toolkits import create_spark_sql_agent
+
 ### Agent 관련 모듈 추가 임포트
 from langchain.agents import initialize_agent, load_tools, Tool, AgentType
 
 from langchain.tools import DuckDuckGoSearchRun
-from langchain.utilities import SerpAPIWrapper
-from langchain.utilities import ArxivAPIWrapper
-from langchain.utilities import WikipediaAPIWrapper
+from langchain_community.utilities import SerpAPIWrapper
+from langchain_community.utilities import ArxivAPIWrapper
+from langchain_community.utilities import WikipediaAPIWrapper
 # from langchain.chains.llm_math.base import LLMMathChain
 
 #--------------------------------------------------
@@ -170,6 +172,7 @@ def create_agent_chain():
     # common_system_prompt = "Write final answer in Korean with as much detail as possible."
     # st.session_state['system_prompt_content'] = get_ai_role_and_sysetm_prompt(st.session_state.get('ai_role', "General AI Assistant")) + " Write final answer in Korean."
     st.session_state['system_prompt_content'] = get_ai_role_and_sysetm_prompt(st.session_state.get('ai_role', "General AI Assistant")) + " " + common_system_prompt
+    print(f"[DEBUG] (system_prompt_content) -------> {st.session_state['system_prompt_content']}")
     system_message = SystemMessage(content=st.session_state['system_prompt_content'])
     
     ### Agent Tool 설정
@@ -335,6 +338,10 @@ def main():
             streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
 #-----------------------------------------------------------------------------------------------------------
+
+    if not os.environ['WA_API_KEY']:
+        st.error("Please enter the Wolfram|Alpha API Key.")
+        st.stop()
 
     ## Container 선언 순서가 화면에 보여지는 순서 결정
     container_history = st.container()
