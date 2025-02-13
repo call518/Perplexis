@@ -24,6 +24,7 @@ def get_max_value_of_model_num_predict(model_name):
         "codegemma:7b": 32768,
         "call518/deepseek-r1-32768ctx:8b": 32768,
         "call518/deepseek-r1-32768ctx:14b": 32768,
+        "llama3-groq-tool-use:8b": 8192,
     }
     return ditc.get(model_name, 1024)
 
@@ -43,6 +44,7 @@ def get_max_value_of_model_num_ctx(model_name):
         "codegemma:7b": 8192,
         "call518/deepseek-r1-32768ctx:8b": 32768,
         "call518/deepseek-r1-32768ctx:14b": 32768,
+        "llama3-groq-tool-use:8b": 8192,
     }
     return ditc.get(model_name, 1024)
 
@@ -70,6 +72,7 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         "llama3.2:3b": 3072,
         "call518/deepseek-r1-32768ctx:8b": 4096,
         "call518/deepseek-r1-32768ctx:14b": 5120,
+        "llama3-groq-tool-use:8b": 4096,
     }
     return ditc.get(model_name)
 
