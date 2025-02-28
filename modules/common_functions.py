@@ -28,6 +28,7 @@ def get_max_value_of_model_num_predict(model_name):
         "call518/tulu3-131072ctx:8b": 131072,
         "call518/exaone3.5-32768ctx:2.4b": 32768,
         "call518/exaone3.5-32768ctx:7.8b": 32768,
+        "call518/exaone3.5-32768ctx:32b": 32768,
     }
     return ditc.get(model_name, 1024)
 
@@ -51,6 +52,7 @@ def get_max_value_of_model_num_ctx(model_name):
         "call518/tulu3-131072ctx:8b": 131072,
         "call518/exaone3.5-32768ctx:2.4b": 32768,
         "call518/exaone3.5-32768ctx:7.8b": 32768,
+        "call518/exaone3.5-32768ctx:32b": 32768,
     }
     return ditc.get(model_name, 1024)
 
@@ -82,6 +84,7 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         "call518/tulu3-131072ctx:8b": 4096,
         "call518/exaone3.5-32768ctx:2.4b": 2560,
         "call518/exaone3.5-32768ctx:7.8b": 4096,
+        "call518/exaone3.5-32768ctx:32b": 5120,
     }
     return ditc.get(model_name)
 
