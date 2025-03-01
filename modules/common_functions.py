@@ -1,3 +1,19 @@
+import telegram
+from telegram.constants import ParseMode
+from telegram.helpers import escape_markdown
+
+## Bot-Name: Perplexis
+## Bot-Username: @Perplexis_Bot
+async def telegramSendMessage(msg, token=None, chatId=None) -> None:
+    if token is None or chatId is None:
+        return None
+    msg = escape_markdown(msg, version=2)
+    bot = telegram.Bot(token=token)
+    # parse_mode = ParseMode.HTML
+    # parse_mode = ParseMode.MARKDOWN
+    parse_mode = ParseMode.MARKDOWN_V2
+    await bot.send_message(chatId, msg, parse_mode=parse_mode)
+
 def get_max_value_of_model_max_tokens(model_name):
     ditc = {
         "gpt-4o-mini": 16384,

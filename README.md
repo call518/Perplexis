@@ -133,7 +133,7 @@ $ pip install -r requirements.txt
 ### Run PGVector Database with DOcker (Optional)
 
 ```bash
-$ docker run --name perplexis -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -v perplexis-pgvector-pgdata:/var/lib/postgresql/data -d call518/pgvector:pg16-1.0.0
+$ docker run --name perplexis-pgvector -e POSTGRES_USER=perplexis -e POSTGRES_PASSWORD=changeme -e POSTGRES_DB=perplexis -p 5432:5432 -v perplexis-pgvector-pgdata:/var/lib/postgresql/data -d call518/pgvector:pg16-1.0.0
 ```
 
 ### Run App
