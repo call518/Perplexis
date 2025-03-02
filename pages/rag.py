@@ -138,12 +138,10 @@ def get_remote_ip() -> str:
 
 default_values = {
     'ai_role': None,
-    'chat_memory': None,
     'history_aware_retriever': None,
     'chain_with_history': None,
     'question_answer_chain': None,
     'rag_chain': None,
-    'chat_response': None,
     'session_id': str(uuid.uuid4()),
     'client_remote_ip' : get_remote_ip(),
     'is_analyzed': False,
@@ -326,7 +324,8 @@ def main():
         st.session_state['ai_role'] = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=0, disabled=st.session_state['is_analyzed'])
 
         contextualize_q_system_prompt = (
-            "Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
+            # "Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
+            "Given a chat history and the latest user question, formulate a standalone question that can be understood without the chat history while still preserving key contextual elements needed for retrieval. Ensure that relevant information from prior exchanges is retained to maintain continuity for effective retrieval. Do NOT answer the question; just reformulate it if necessary. If the latest user question depends on prior context, incorporate the necessary details from chat history concisely while avoiding excessive verbosity."
         )
         contextualize_q_prompt = ChatPromptTemplate.from_messages(
             [
