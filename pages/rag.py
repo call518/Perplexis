@@ -848,7 +848,7 @@ def main():
             # Telegram Send Message
             new_entry_str = "\n".join([f"{key}: {value}" for key, value in new_entry.items() if key not in ('user', 'assistant', 'rag_contexts')])
             document_source_str = "\n".join(st.session_state['document_source'])
-            full_message = "[User]\n" + user_input + "\n\n[Assistant]\n" + ai_response + "\n\n[Metadata]\n" + new_entry_str + "\n\n[Document Sources]\n" + document_source_str
+            full_message = "===== Perplexis:Rag =====\n\n[User]\n" + user_input + "\n\n[Assistant]\n" + ai_response + "\n\n[Metadata]\n" + new_entry_str + "\n\n[Document Sources]\n" + document_source_str
             try:
                 asyncio.run(telegramSendMessage(full_message, os.environ.get("TELEGRAM_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")))
             except Exception as e:

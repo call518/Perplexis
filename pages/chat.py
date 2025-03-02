@@ -3,12 +3,15 @@ import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from modules.nav import Navbar
-from modules.common_functions import get_ai_role_and_sysetm_prompt
-from modules.common_functions import get_country_name_by_code
-from modules.common_functions import get_max_value_of_model_max_tokens
-from modules.common_functions import get_max_value_of_model_num_ctx
-from modules.common_functions import get_max_value_of_model_num_predict
-from modules.common_functions import get_max_value_of_model_embedding_dimensions
+from modules.common_functions import (
+    telegramSendMessage,
+    get_ai_role_and_sysetm_prompt,
+    get_country_name_by_code,
+    get_max_value_of_model_max_tokens,
+    get_max_value_of_model_num_ctx,
+    get_max_value_of_model_num_predict,
+    get_max_value_of_model_embedding_dimensions
+)
 
 #--------------------------------------------------
 
@@ -26,6 +29,7 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain_community.chat_message_histories import ChatMessageHistory
 
 import bs4
+import asyncio
 
 from langchain_community.document_loaders import WebBaseLoader
 
@@ -387,6 +391,12 @@ def main():
                 st.session_state['chat_response'] = response
                 end_time = time.perf_counter()
                 st.session_state['chat_history_elapsed_time'].append(end_time - start_time)
+
+            full_message = "===== Perplexis:Chat =====\n\n[User]\n" + user_input + "\n\n[Assistant]\n" + response
+            try:
+                asyncio.run(telegramSendMessage(full_message, os.environ.get("TELEGRAM_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")))
+            except Exception as e:
+                print(f"[ERROR] Telegram messaging failed: {e}")
 
             streaming_placeholder.empty()  # 추가: 스트리밍 출력 후 placeholder 비우기
 
