@@ -335,8 +335,7 @@ def main():
             st.session_state.metadata_history.append(metadata_entry)
 
             metadata_entry_str = "\n".join([f"{key}: {value}" for key, value in metadata_entry.items() if key not in ('user', 'assistant')])
-            # full_message = "===== Perplexis:Chat =====\n\n[User]\n" + user_input + "\n\n[Assistant]\n" + response + "\n\n[Metadata]\n" + metadata_entry_str
-            full_message = "===== Perplexis:Chat =====\n\n[User]\n" + user_input + "\n\n[Assistant]\n" + response
+            full_message = "===== Perplexis:Chat =====\n\n[User]\n" + user_input + "\n\n[Assistant]\n" + response + "\n\n[Metadata]\n" + metadata_entry_str
             print(f"[DEBUG] (full_message) =======> {full_message}")
             try:
                 asyncio.run(telegramSendMessage(full_message, os.environ.get("TELEGRAM_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")))
