@@ -338,6 +338,7 @@ def main():
         system_prompt = (
             "\n"
             "- If there is no content between <CTX-START> and <CTX-END>, or if the context lacks sufficient information, under no circumstances should you provide an answer. (Write a message stating that you cannot answer because there is no context to refer to, and then end the task.)\n"
+            "- If there is content between <CTX-START> and <CTX-END>, but some of it is unrelated to the user's question, that content should be ignored."
             "- If you don't know the answer, say you don't know.\n"
             "- Write the answer using at least 50 sentences if possible, and include as much accurate and detailed information as possible.\n"
             "- Write the answer in Korean if possible.\n"
