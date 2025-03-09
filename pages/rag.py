@@ -192,7 +192,7 @@ def init_session_state():
     for key, value in default_values.items():
         if key not in st.session_state:
             st.session_state[key] = value
-        if key not in ['store', 'documents_chunks']:
+        if key not in ['store', 'documents_chunks', 'rag_history']:
             print(f"[DEBUG] (session_state) {key} = {st.session_state[key]}")
     os.system('rm -rf ./uploads/*')
 
@@ -303,6 +303,18 @@ def read_uri_content(uri, type):
         st.stop()
     return docs
 
+def create_embedding_instance(provider):
+    if provider == "OpenAI":
+        st.session_state.embedding_instance = OpenAIEmbeddings(
+            base_url = os.environ.get("OPENAI_BASE_URL"),
+            model = st.session_state.selected_embedding_model,
+        )
+    else:
+        st.session_state.embedding_instance = OllamaEmbeddings(
+            base_url = os.environ.get("OLLAMA_BASE_URL"),
+            model = st.session_state.selected_embedding_model,
+        )
+
 # 추가: Streamlit 콜백 핸들러
 class StreamlitCallbackHandler(BaseCallbackHandler):
     def __init__(self, placeholder):
@@ -320,45 +332,7 @@ def main():
     """Governs the Streamlit UI for retrieving and embedding documents, then performing RAG."""
     with st.sidebar:
         st.title("Parameters")
-        st.session_state.ai_role = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=0, disabled=st.session_state.is_analyzed)
-
-        contextualize_q_system_prompt = (
-            # "Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
-            "Given a chat history and the latest user question, formulate a standalone question that can be understood without the chat history while still preserving key contextual elements needed for retrieval. Ensure that relevant information from prior exchanges is retained to maintain continuity for effective retrieval. Do NOT answer the question; just reformulate it if necessary. If the latest user question depends on prior context, incorporate the necessary details from chat history concisely while avoiding excessive verbosity."
-        )
-        contextualize_q_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", contextualize_q_system_prompt),
-                MessagesPlaceholder("chat_history"),
-                ("human", "{input}"),
-            ]
-        )
-
-        system_prompt_ai_role = get_ai_role_and_sysetm_prompt(st.session_state.ai_role)
-        system_prompt = (
-            "\n"
-            "- If there is no content between <CTX-START> and <CTX-END>, or if the context lacks sufficient information, under no circumstances should you provide an answer. (Write a message stating that you cannot answer because there is no context to refer to, and then end the task.)\n"
-            "- If there is content between <CTX-START> and <CTX-END>, but some of it is unrelated to the user's question, that content should be ignored."
-            "- If you don't know the answer, say you don't know.\n"
-            "- Write the answer using at least 50 sentences if possible, and include as much accurate and detailed information as possible.\n"
-            "- Write the answer in Korean if possible.\n"
-            f"- Your role as an AI is as follows: {system_prompt_ai_role}\n"
-            "- After answering the question, provide five relevant follow-up questions under the heading 'Suggested Questions'. These questions should be closely related to the content of your answer, encouraging deeper exploration or clarification of key points.\n"
-
-            "\n"
-            "<CTX-START>\n"
-            "{context}\n"
-            "<CTX-END>\n"
-        )
-        print(f"[DEBUG] (system_prompt) {system_prompt}")
-        qa_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", system_prompt),
-                MessagesPlaceholder("chat_history"),
-                ("human", "{input}"),
-            ]
-        )
-
+        st.session_state.ai_role = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=0)
         st.session_state.document_type = st.radio("Document Type", ("URL", "File Upload", "Google Search"), horizontal=True, disabled=st.session_state.is_analyzed)
 
         if st.session_state.document_type == "URL":
@@ -371,24 +345,24 @@ def main():
                 st.write(f"File uploaded: {uploaded_file.name}")
                 st.session_state.document_source.append(uploaded_file.name)
         elif st.session_state.document_type == "Google Search":
-            st.session_state.google_search_query = st.text_input("Google Search Query", placeholder="Enter Your Keywords", disabled=st.session_state.is_analyzed)
-            st.session_state.google_custom_urls = st.text_area("Google Search Custom URLs (per Line)", placeholder="Enter Your Keywords", disabled=st.session_state.is_analyzed)
+            st.session_state.google_search_query = st.text_input("Google Search Query", placeholder="Enter Your Keywords")
+            st.session_state.google_custom_urls = st.text_area("Google Search Custom URLs (per Line)", placeholder="Enter Your Keywords")
             col_google_search_result_count, col_google_search_doc_lang = st.sidebar.columns(2)
             with col_google_search_result_count:
                 if os.environ.get("GOOGLE_API_KEY") and os.environ.get("GOOGLE_CSE_ID"):
                     search_result_max_count = 10
                 else:
                     search_result_max_count = 50
-                st.session_state.google_search_result_count = st.number_input("Search Results", min_value=1, max_value=search_result_max_count, value=10, step=1, disabled=st.session_state.is_analyzed)
+                st.session_state.google_search_result_count = st.number_input("Search Results", min_value=1, max_value=search_result_max_count, value=10, step=1)
             with col_google_search_doc_lang:
-                st.session_state.google_search_doc_lang = st.selectbox("Search Document Language", ["Afrikaans(af)", "Albanian(sq)", "Amharic(am)", "Arabic(ar)", "Armenian(hy)", "Azerbaijani(az)", "Bengali(bn)", "Bulgarian(bg)", "Burmese(my)", "Catalan(ca)", "Chinese (Simplified)(zh-CN)", "Chinese (Traditional)(zh-TW)", "Croatian(hr)", "Czech(cs)", "Danish(da)", "Dutch(nl)", "English(en)", "English (UK)(en-GB)", "Estonian(et)", "Filipino(fil)", "Finnish(fi)", "French(fr)", "French (Canadian)(fr-CA)", "Georgian(ka)", "German(de)", "Greek(el)", "Gujarati(gu)", "Hebrew(iw)", "Hindi(hi)", "Hungarian(hu)", "Icelandic(is)", "Indonesian(id)", "Italian(it)", "Japanese(ja)", "Kannada(kn)", "Kazakh(kk)", "Khmer(km)", "Korean(ko)", "Kyrgyz(ky)", "Laothian(lo)", "Latvian(lv)", "Lithuanian(lt)", "Macedonian(mk)", "Malay(ms)", "Malayam(ml)", "Marathi(mr)", "Mongolian(mn)", "Nepali(ne)", "Norwegian (Bokmal)(no)", "Persian(fa)", "Polish(pl)", "Portuguese (Brazil)(pt-BR)", "Portuguese (Portugal)(pt-PT)", "Punjabi(pa)", "Romanian(ro)", "Russian(ru)", "Serbian(sr)", "Serbian (Latin)(sr-Latn)", "Sinhalese(si)", "Slovak(sk)", "Slovenian(sl)", "Spanish(es)", "Spanish (Latin America)(es-419)", "Swahili(sw)", "Swedish(sv)", "Tamil(ta)", "Telugu(te)", "Thai(th)", "Turkish(tr)", "Ukrainian(uk)", "Urdu(ur)", "Uzbek(uz)", "Vietnamese(vi)", "Welsh(cy)"], index=16, disabled=st.session_state.is_analyzed)
+                st.session_state.google_search_doc_lang = st.selectbox("Search Document Language", ["Afrikaans(af)", "Albanian(sq)", "Amharic(am)", "Arabic(ar)", "Armenian(hy)", "Azerbaijani(az)", "Bengali(bn)", "Bulgarian(bg)", "Burmese(my)", "Catalan(ca)", "Chinese (Simplified)(zh-CN)", "Chinese (Traditional)(zh-TW)", "Croatian(hr)", "Czech(cs)", "Danish(da)", "Dutch(nl)", "English(en)", "English (UK)(en-GB)", "Estonian(et)", "Filipino(fil)", "Finnish(fi)", "French(fr)", "French (Canadian)(fr-CA)", "Georgian(ka)", "German(de)", "Greek(el)", "Gujarati(gu)", "Hebrew(iw)", "Hindi(hi)", "Hungarian(hu)", "Icelandic(is)", "Indonesian(id)", "Italian(it)", "Japanese(ja)", "Kannada(kn)", "Kazakh(kk)", "Khmer(km)", "Korean(ko)", "Kyrgyz(ky)", "Laothian(lo)", "Latvian(lv)", "Lithuanian(lt)", "Macedonian(mk)", "Malay(ms)", "Malayam(ml)", "Marathi(mr)", "Mongolian(mn)", "Nepali(ne)", "Norwegian (Bokmal)(no)", "Persian(fa)", "Polish(pl)", "Portuguese (Brazil)(pt-BR)", "Portuguese (Portugal)(pt-PT)", "Punjabi(pa)", "Romanian(ro)", "Russian(ru)", "Serbian(sr)", "Serbian (Latin)(sr-Latn)", "Sinhalese(si)", "Slovak(sk)", "Slovenian(sl)", "Spanish(es)", "Spanish (Latin America)(es-419)", "Swahili(sw)", "Swedish(sv)", "Tamil(ta)", "Telugu(te)", "Thai(th)", "Turkish(tr)", "Ukrainian(uk)", "Urdu(ur)", "Uzbek(uz)", "Vietnamese(vi)", "Welsh(cy)"], index=16)
         else:
             st.error("[ERROR] Unsupported document type")
             st.stop()
 
         col_ai, col_embedding, col_vectorstore = st.sidebar.columns(3)
         with col_ai:
-            st.session_state.selected_ai = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state.is_analyzed)
+            st.session_state.selected_ai = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0)
         with col_embedding:
             st.session_state.selected_embedding_provider = st.radio("**:blue[Embeddings]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state.is_analyzed)
         with col_vectorstore:
@@ -396,14 +370,14 @@ def main():
         
         if st.session_state.selected_embedding_provider == "OpenAI" or st.session_state.selected_ai == "OpenAI":
             os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password")
-            os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ.get("OPENAI_BASE_URL"), disabled=st.session_state.is_analyzed)
+            os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ.get("OPENAI_BASE_URL"))
     
         if st.session_state.selected_embedding_provider == "Ollama" or st.session_state.selected_ai == "Ollama":
-            os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ.get("OLLAMA_BASE_URL"), disabled=st.session_state.is_analyzed)
+            os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ.get("OLLAMA_BASE_URL"))
     
         if st.session_state.vectorstore_type == "ChromaDB":
             st.session_state.chromadb_root_reset = st.checkbox("Reset ChromaDB", value=st.session_state.chromadb_root_reset, disabled=st.session_state.is_analyzed)
-            st.session_state.chromadb_similarity = st.selectbox("ChromaDB Similarity", ["cosine", "l2", "ip"], index=0, disabled=st.session_state.is_analyzed)
+            st.session_state.chromadb_similarity = st.selectbox("ChromaDB Similarity", ["cosine", "l2", "ip"], index=0)
 
         if st.session_state.vectorstore_type == "PGVector":
             st.session_state.pgvector_db_reset = st.checkbox("Reset PGVector", value=st.session_state.pgvector_db_reset, disabled=st.session_state.is_analyzed)
@@ -411,17 +385,17 @@ def main():
             if st.session_state.pgvector_connection is None:
                 st.session_state.pgvector_connection = f"postgresql+psycopg://{os.environ.get('PGVECTOR_USER')}:{os.environ.get('PGVECTOR_PASS')}@{os.environ.get('PGVECTOR_HOST')}:{os.environ.get('PGVECTOR_PORT')}/perplexis"
             st.session_state.pgvector_connection = st.text_input("PGVector Connection", value=st.session_state.pgvector_connection, type="password",  disabled=st.session_state.is_analyzed)
-            st.session_state.pgvector_similarity = st.selectbox("PGVector Similarity", ["cosine", "euclidean", "dotproduct"], index=0, disabled=st.session_state.is_analyzed)
+            st.session_state.pgvector_similarity = st.selectbox("PGVector Similarity", ["cosine", "euclidean", "dotproduct"], index=0)
     
         if st.session_state.vectorstore_type == "Pinecone":
-            os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ.get("PINECONE_API_KEY"), type="password", disabled=st.session_state.is_analyzed)
+            os.environ["PINECONE_API_KEY"] = st.text_input("**:red[Pinecone API Key]** [Learn more](https://www.pinecone.io/docs/quickstart/)", value=os.environ.get("PINECONE_API_KEY"), type="password")
             st.session_state.pinecone_index_reset = st.checkbox("Reset Pinecone Index", value=st.session_state.pinecone_index_reset, disabled=st.session_state.is_analyzed)
-            st.session_state.pinecone_similarity = st.selectbox("Pinecone Similarity", ["cosine", "l2", "inner"], index=0, disabled=st.session_state.is_analyzed)
+            st.session_state.pinecone_similarity = st.selectbox("Pinecone Similarity", ["cosine", "l2", "inner"], index=0)
 
         if st.session_state.selected_embedding_provider == "OpenAI":
             st.session_state.selected_embedding_model = st.selectbox("Embedding Model", ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"], index=0,  disabled=st.session_state.is_analyzed)
         else:
-            st.session_state.selected_embedding_model = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3:8b", "llama3.2:1b", "llama3.2:3b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "llama3-groq-tool-use:8b", "call518/tulu3-131072ctx:8b", "call518/exaone3.5-32768ctx:2.4b", "call518/exaone3.5-32768ctx:7.8b", "call518/exaone3.5-32768ctx:32b"], index=4,  disabled=st.session_state.is_analyzed)
+            st.session_state.selected_embedding_model = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3:8b", "llama3.2:1b", "llama3.2:3b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "llama3-groq-tool-use:8b", "call518/tulu3-131072ctx:8b", "call518/exaone3.5-32768ctx:2.4b", "call518/exaone3.5-32768ctx:7.8b", "call518/exaone3.5-32768ctx:32b"], index=4, disabled=st.session_state.is_analyzed)
 
         st.session_state.selected_embedding_dimension = get_max_value_of_model_embedding_dimensions(st.session_state.selected_embedding_model)
         print(f"[DEBUG] (selected_embedding_model) {st.session_state.selected_embedding_model}")
@@ -433,62 +407,62 @@ def main():
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
         with col_ai_llm:
             if st.session_state.selected_ai == "OpenAI":
-                st.session_state.selected_llm = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=0, disabled=st.session_state.is_analyzed)
+                st.session_state.selected_llm = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=0)
             else:
-                st.session_state.selected_llm = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3:8b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "llama3-groq-tool-use:8b", "call518/tulu3-131072ctx:8b", "call518/exaone3.5-32768ctx:2.4b", "call518/exaone3.5-32768ctx:7.8b", "call518/exaone3.5-32768ctx:32b"], index=0, disabled=st.session_state.is_analyzed)
+                st.session_state.selected_llm = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3:8b", "llama3.2:1b", "llama3.2:3b", "codegemma:2b", "codegemma:7b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "llama3-groq-tool-use:8b", "call518/tulu3-131072ctx:8b", "call518/exaone3.5-32768ctx:2.4b", "call518/exaone3.5-32768ctx:7.8b", "call518/exaone3.5-32768ctx:32b"], index=0)
         with col_ai_temperature:
-            st.session_state.temperature = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state.temperature, step=0.05, disabled=st.session_state.is_analyzed)
+            st.session_state.temperature = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state.temperature, step=0.05)
 
         col_chunk_size, col_chunk_overlap = st.sidebar.columns(2)
         with col_chunk_size:
-            st.session_state.chunk_size = st.number_input("Chunk Size", min_value=200, max_value=5000, value=500, step=100, disabled=st.session_state.is_analyzed)
+            st.session_state.chunk_size = st.number_input("Chunk Size", min_value=200, max_value=5000, value=500, step=100)
         with col_chunk_overlap:
-            st.session_state.chunk_overlap = st.number_input("Chunk Overlap", min_value=0, max_value=500, value=100, step=100, disabled=st.session_state.is_analyzed)
+            st.session_state.chunk_overlap = st.number_input("Chunk Overlap", min_value=0, max_value=500, value=100, step=100)
             if not (st.session_state.chunk_size >= (st.session_state.chunk_overlap * 2)):
                 st.error("Chunk Overlap must be less than Chunk Size.")
                 st.stop()
 
-        st.session_state.rag_search_type = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=1, disabled=st.session_state.is_analyzed)
+        st.session_state.rag_search_type = st.selectbox("RAG Search Type", ["similarity", "similarity_score_threshold", "mmr"], index=1)
     
         if st.session_state.rag_search_type == "similarity_score_threshold":
             col_rag_arg1, col_rag_arg2 = st.sidebar.columns(2)
             with col_rag_arg1:
-                st.session_state.rag_top_k = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state.is_analyzed)
+                st.session_state.rag_top_k = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1)
             with col_rag_arg2:
-                st.session_state.rag_score_threshold = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.60, step=0.05, disabled=st.session_state.is_analyzed)
+                st.session_state.rag_score_threshold = st.number_input("score_threshold", min_value=0.01, max_value=1.00, value=0.60, step=0.05)
         elif st.session_state.rag_search_type == "similarity":
-            st.session_state.rag_top_k = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state.is_analyzed)
+            st.session_state.rag_top_k = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1)
         elif st.session_state.rag_search_type == "mmr":
             col_rag_arg1, col_rag_arg2, col_rag_arg3 = st.sidebar.columns(3)
             with col_rag_arg1:
-                st.session_state.rag_top_k = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1, disabled=st.session_state.is_analyzed)
+                st.session_state.rag_top_k = st.number_input("RAG Top-K", min_value=1, max_value=50, value=10, step=1)
             with col_rag_arg2:
-                st.session_state.rag_fetch_k = st.number_input("MMR Fetch-K", min_value=1, value=5, step=1, disabled=st.session_state.is_analyzed)
+                st.session_state.rag_fetch_k = st.number_input("MMR Fetch-K", min_value=1, value=5, step=1)
             with col_rag_arg3:
-                st.session_state.rag_lambda_mult = st.number_input("MMR Lambda Mult", min_value=0.01, max_value=1.00, value=0.50, step=0.05, disabled=st.session_state.is_analyzed)
+                st.session_state.rag_lambda_mult = st.number_input("MMR Lambda Mult", min_value=0.01, max_value=1.00, value=0.50, step=0.05)
 
         col_llm_top_p, col_repeat_penalty = st.sidebar.columns(2)
         with col_llm_top_p:
-            st.session_state.llm_top_p = st.number_input("top_p", min_value=0.00, max_value=1.00, value=st.session_state.llm_top_p, step=0.05, disabled=st.session_state.is_analyzed)
+            st.session_state.llm_top_p = st.number_input("top_p", min_value=0.00, max_value=1.00, value=st.session_state.llm_top_p, step=0.05)
         with col_repeat_penalty:
             if st.session_state.selected_ai == "OpenAI":
-                st.session_state.llm_openai_frequency_penalty = st.number_input("frequency_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.llm_openai_frequency_penalty, step=0.05, disabled=st.session_state.is_analyzed)
+                st.session_state.llm_openai_frequency_penalty = st.number_input("frequency_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.llm_openai_frequency_penalty, step=0.05)
             if st.session_state.selected_ai == "Ollama":
-                st.session_state.llm_ollama_repeat_penalty = st.number_input("repeat_penalty", min_value=0.00, value=st.session_state.llm_ollama_repeat_penalty, step=0.05, disabled=st.session_state.is_analyzed)
+                st.session_state.llm_ollama_repeat_penalty = st.number_input("repeat_penalty", min_value=0.00, value=st.session_state.llm_ollama_repeat_penalty, step=0.05)
 
         if st.session_state.selected_ai == "OpenAI":
             col_llm_openai_max_tokens, col_llm_openai_presence_penalty = st.sidebar.columns(2)
             with col_llm_openai_max_tokens:
-                st.session_state.llm_openai_max_tokens = st.number_input("max_tokens", min_value=1024, max_value=get_max_value_of_model_max_tokens(st.session_state.selected_llm), value=get_max_value_of_model_max_tokens(st.session_state.selected_llm), disabled=st.session_state.is_analyzed)
+                st.session_state.llm_openai_max_tokens = st.number_input("max_tokens", min_value=1024, max_value=get_max_value_of_model_max_tokens(st.session_state.selected_llm), value=get_max_value_of_model_max_tokens(st.session_state.selected_llm))
             with col_llm_openai_presence_penalty:
-                st.session_state.llm_openai_presence_penalty = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.llm_openai_presence_penalty, step=0.05, disabled=st.session_state.is_analyzed)
+                st.session_state.llm_openai_presence_penalty = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.llm_openai_presence_penalty, step=0.05)
         if st.session_state.selected_ai == "Ollama":
             col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
             with col_llm_ollama_num_ctx:
-                st.session_state.llm_ollama_num_ctx = st.number_input("num_ctx", min_value=256, max_value=get_max_value_of_model_num_ctx(st.session_state.selected_llm), value=int(get_max_value_of_model_num_ctx(st.session_state.selected_llm) / 2), step=512, disabled=st.session_state.is_analyzed)
+                st.session_state.llm_ollama_num_ctx = st.number_input("num_ctx", min_value=256, max_value=get_max_value_of_model_num_ctx(st.session_state.selected_llm), value=int(get_max_value_of_model_num_ctx(st.session_state.selected_llm) / 2), step=512)
                 print(f"[DEBUG] (llm_ollama_num_ctx) {st.session_state.llm_ollama_num_ctx}")
             with col_llm_ollama_num_predict:
-                st.session_state.llm_ollama_num_predict = st.number_input("num_predict", value=int(get_max_value_of_model_num_predict(st.session_state.selected_llm) / 2), disabled=st.session_state.is_analyzed)
+                st.session_state.llm_ollama_num_predict = st.number_input("num_predict", value=int(get_max_value_of_model_num_predict(st.session_state.selected_llm) / 2))
                 print(f"[DEBUG] (llm_ollama_num_predict) {st.session_state.llm_ollama_num_predict}")
 
         if st.session_state.selected_embedding_provider == "OpenAI" or st.session_state.selected_ai == "OpenAI":
@@ -511,6 +485,7 @@ def main():
                 base_url = os.environ.get("OLLAMA_BASE_URL"),
                 model = st.session_state.selected_embedding_model,
             )
+        # create_embedding_instance(st.session_state.selected_embedding_provider)
 
         if st.button("Embedding", disabled=st.session_state.is_analyzed):
             docs_contents = []
@@ -637,6 +612,7 @@ def main():
                             )
                         )
 
+                    ### Embedding 데이터 추가
                     st.session_state.vectorstore_instance = PineconeVectorStore.from_documents(
                         documents = st.session_state.documents_chunks,
                         embedding = st.session_state.embedding_instance,
@@ -649,6 +625,7 @@ def main():
                     if st.session_state.chromadb_root_reset:
                         reset_chromadb(chromadb_dir_path)
                     
+                    ### Embedding 데이터 추가
                     st.session_state.vectorstore_instance = Chroma.from_documents(
                         documents = st.session_state.documents_chunks,
                         embedding = st.session_state.embedding_instance,
@@ -673,30 +650,10 @@ def main():
                         use_jsonb=True,
                     )
                     
+                    ### Embedding 데이터 추가
                     st.session_state.vectorstore_instance.add_documents(st.session_state.documents_chunks, ids=[doc.metadata["id"] for doc in st.session_state.documents_chunks])
 
-                if st.session_state.rag_search_type == "similarity_score_threshold":
-                    search_kwargs = {
-                        "k": int(st.session_state.rag_top_k),
-                        "score_threshold": float(st.session_state.rag_score_threshold)
-                    }
-                elif st.session_state.rag_search_type == "similarity":
-                    search_kwargs = {
-                        "k": int(st.session_state.rag_top_k)
-                    }
-                elif st.session_state.rag_search_type == "mmr":
-                    search_kwargs = {
-                        "k": int(st.session_state.rag_top_k),
-                        "fetch_k": int(st.session_state.rag_fetch_k),
-                        "lambda_mult": float(st.session_state.rag_lambda_mult)
-                    }
-
-                st.session_state.retriever = st.session_state.vectorstore_instance.as_retriever(
-                    search_type=st.session_state.rag_search_type,
-                    search_kwargs=search_kwargs,
-                )
-                
-                if st.session_state.retriever:
+                if st.session_state.vectorstore_instance:
                     st.success("Embedding completed!")
                 else:
                     st.error("[ERROR] Embedding failed!")
@@ -726,13 +683,14 @@ def main():
         st.write("")
 
     try:
-        if not (st.session_state.retriever and st.session_state.session_id) or not st.session_state.is_analyzed:
+        if not st.session_state.session_id or not st.session_state.is_analyzed:
             st.stop()
     except Exception as e:
         print(f"[Exception]: {e}")
         st.error("Please enter the required information in the left sidebar.")
         st.stop()
 
+    ### RAG Main Windows
     container_history = st.container()
     container_user_textbox = st.container()
 
@@ -744,6 +702,65 @@ def main():
         if submit_button and user_input:
             # streaming_placeholder = st.empty()
             # callback_handler = StreamlitCallbackHandler(placeholder=streaming_placeholder)
+
+            contextualize_q_system_prompt = (
+                # "Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. Do NOT answer the question, just reformulate it if needed and otherwise return it as is."
+                "Given a chat history and the latest user question, formulate a standalone question that can be understood without the chat history while still preserving key contextual elements needed for retrieval. Ensure that relevant information from prior exchanges is retained to maintain continuity for effective retrieval. Do NOT answer the question; just reformulate it if necessary. If the latest user question depends on prior context, incorporate the necessary details from chat history concisely while avoiding excessive verbosity."
+            )
+
+            contextualize_q_prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", contextualize_q_system_prompt),
+                    MessagesPlaceholder("chat_history"),
+                    ("human", "{input}"),
+                ]
+            )
+
+            system_prompt_ai_role = get_ai_role_and_sysetm_prompt(st.session_state.ai_role)
+            system_prompt = (
+                "\n"
+                "- If there is no content between <CTX-START> and <CTX-END>, or if the context lacks sufficient information, under no circumstances should you provide an answer. (Write a message stating that you cannot answer because there is no context to refer to, and then end the task.)\n"
+                "- If there is content between <CTX-START> and <CTX-END>, but some of it is unrelated to the user's question, that content should be ignored."
+                "- If you don't know the answer, say you don't know.\n"
+                "- Write the answer using at least 50 sentences if possible, and include as much accurate and detailed information as possible.\n"
+                "- Write the answer in Korean if possible.\n"
+                f"- Your role as an AI is as follows: {system_prompt_ai_role}\n"
+                "- After answering the question, provide five relevant follow-up questions under the heading 'Suggested Questions'. These questions should be closely related to the content of your answer, encouraging deeper exploration or clarification of key points.\n"
+
+                "\n"
+                "<CTX-START>\n"
+                "{context}\n"
+                "<CTX-END>\n"
+            )
+            # print(f"[DEBUG] (system_prompt) {system_prompt}")
+            qa_prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", system_prompt),
+                    MessagesPlaceholder("chat_history"),
+                    ("human", "{input}"),
+                ]
+            )
+
+            ### Retriver 제정의
+            if st.session_state.rag_search_type == "similarity_score_threshold":
+                search_kwargs = {
+                    "k": int(st.session_state.rag_top_k),
+                    "score_threshold": float(st.session_state.rag_score_threshold)
+                }
+            elif st.session_state.rag_search_type == "similarity":
+                search_kwargs = {
+                    "k": int(st.session_state.rag_top_k)
+                }
+            elif st.session_state.rag_search_type == "mmr":
+                search_kwargs = {
+                    "k": int(st.session_state.rag_top_k),
+                    "fetch_k": int(st.session_state.rag_fetch_k),
+                    "lambda_mult": float(st.session_state.rag_lambda_mult)
+                }
+            st.session_state.retriever = st.session_state.vectorstore_instance.as_retriever(
+                search_type=st.session_state.rag_search_type,
+                search_kwargs=search_kwargs,
+            )
 
             ### LLM 제정의
             if st.session_state.selected_ai == "OpenAI":
@@ -785,18 +802,15 @@ def main():
                     verbose = True,
                 )
 
-            if st.session_state.history_aware_retriever is None:
-                st.session_state.history_aware_retriever = create_history_aware_retriever(
-                    st.session_state.llm,
-                    st.session_state.retriever,
-                    contextualize_q_prompt
-                )
+            # if st.session_state.history_aware_retriever is None:
+            st.session_state.history_aware_retriever = create_history_aware_retriever(
+                st.session_state.llm,
+                st.session_state.retriever,
+                contextualize_q_prompt
+            )
 
-            if st.session_state.question_answer_chain is None:
-                st.session_state.question_answer_chain = create_stuff_documents_chain(st.session_state.llm, qa_prompt)
-            
-            if st.session_state.rag_chain is None:
-                st.session_state.rag_chain = create_retrieval_chain(st.session_state.history_aware_retriever, st.session_state.question_answer_chain)
+            st.session_state.question_answer_chain = create_stuff_documents_chain(st.session_state.llm, qa_prompt)
+            st.session_state.rag_chain = create_retrieval_chain(st.session_state.history_aware_retriever, st.session_state.question_answer_chain)
 
             # if not st.session_state.store:
             #     st.session_state.store = {}
@@ -826,13 +840,14 @@ def main():
                 answer_elapsed_time = end_time - start_time
 
             print(f"[DEBUG] (answer_elapsed_time) {answer_elapsed_time} sec")
-            print(f"[DEBUG] AI Result: {result}")
+            # print(f"[DEBUG] AI Result: {result}")
             
             ai_response = result['answer']
             rag_contexts = result.get('context', [])
             new_entry = {
                 "user": user_input,
                 "assistant": ai_response,
+                "role_of_ai": st.session_state.ai_role,
                 "llm_model_name": get_llm_model_name(),
                 "rag_contexts": rag_contexts,
                 "temperature": st.session_state.temperature,
@@ -890,6 +905,7 @@ def main():
                             - <b>Chunk-Overlap</b>: <font color=black>{st.session_state.chunk_overlap}</font><br>
                             - <b>VectorDB Type</b>: <font color=black>{st.session_state.vectorstore_type}</font><br>
                             - <b>AI</b>: <font color=red>{st.session_state.selected_ai}</font><br>
+                            - <b>Role of AI</b>: <font color=black>{st.session_state.ai_role}</font><br>
                             - <b>LLM Model</b>: <font color=black>{llm_model_name}</font><br>
                             - <b>LLM Args(Common) temperature</b>: <font color=black>{temperature}</font><br>
                             - <b>LLM Args(Common) top_p</b>: <font color=black>{st.session_state.llm_top_p}</font><br>
