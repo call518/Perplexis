@@ -133,7 +133,6 @@ default_values = {
     'chat_response': None,
     'session_id': str(uuid.uuid4()),
     # 'client_remote_ip': get_remote_ip(),
-    'is_analyzed': False,
     'llm': None,
     'llm_top_p': 0.50,
     'llm_openai_presence_penalty': 0.00,
@@ -185,49 +184,49 @@ def main():
 
         st.session_state.ai_role = st.selectbox("Role of AI", get_ai_role_and_sysetm_prompt(only_key=True), index=0)
 
-        st.session_state.selected_ai = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0, disabled=st.session_state.is_analyzed)
+        st.session_state.selected_ai = st.radio("**:blue[AI]**", ("Ollama", "OpenAI"), index=0)
         
 
         if st.session_state.selected_ai == "OpenAI":
-            os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password", disabled=st.session_state.is_analyzed)
-            os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"], disabled=st.session_state.is_analyzed)
+            os.environ["OPENAI_API_KEY"] = st.text_input("**:red[OpenAI API Key]** [Learn more](https://platform.openai.com/docs/quickstart)", value=os.environ["OPENAI_API_KEY"], type="password")
+            os.environ["OPENAI_BASE_URL"] = st.text_input("OpenAI API URL", value=os.environ["OPENAI_BASE_URL"])
 
         if st.session_state.selected_embedding_provider == "Ollama" or st.session_state.selected_ai == "Ollama":
-            os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"], disabled=st.session_state.is_analyzed)
+            os.environ["OLLAMA_BASE_URL"] = st.text_input("Ollama API URL", value=os.environ["OLLAMA_BASE_URL"])
 
         col_ai_llm, col_ai_temperature = st.sidebar.columns(2)
         with col_ai_llm:
             if st.session_state.selected_ai == "OpenAI":
-                st.session_state.selected_llm = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4, disabled=st.session_state.is_analyzed)
+                st.session_state.selected_llm = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4)
             else:
-                st.session_state.selected_llm = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3.2:1b", "llama3:8b", "llama3.2:3b", "codegemma:2b", "codegemma:7b", "mistral:7b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "llama3-groq-tool-use:8b", "tulu3:8b", "call518/exaone3.5-32768ctx:2.4b", "call518/exaone3.5-32768ctx:7.8b", "call518/exaone3.5-32768ctx:32b"], index=0, disabled=st.session_state.is_analyzed)
+                st.session_state.selected_llm = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3.2:1b", "llama3:8b", "llama3.2:3b", "codegemma:2b", "codegemma:7b", "mistral:7b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "llama3-groq-tool-use:8b", "tulu3:8b", "call518/exaone3.5-32768ctx:2.4b", "call518/exaone3.5-32768ctx:7.8b", "call518/exaone3.5-32768ctx:32b"], index=0)
         with col_ai_temperature:
             # st.session_state['temperature'] = st.text_input("LLM Temperature (0.0 ~ 1.0)", value=st.session_state['temperature'])
-            st.session_state.temperature = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state.temperature, step=0.05, disabled=st.session_state.is_analyzed)
+            st.session_state.temperature = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state.temperature, step=0.05)
 
         ### LLM 모델 설정
         col_llm_top_p, col_repeat_penalty = st.sidebar.columns(2)
         with col_llm_top_p:
-            st.session_state.llm_top_p = st.number_input("top_p", min_value=0.00, max_value=1.00, value=st.session_state.llm_top_p, step=0.05, disabled=st.session_state.is_analyzed)
+            st.session_state.llm_top_p = st.number_input("top_p", min_value=0.00, max_value=1.00, value=st.session_state.llm_top_p, step=0.05)
         with col_repeat_penalty:
             if st.session_state.selected_ai == "OpenAI":
-                st.session_state.llm_openai_frequency_penalty = st.number_input("frequency_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.llm_openai_frequency_penalty, step=0.05, disabled=st.session_state.is_analyzed)
+                st.session_state.llm_openai_frequency_penalty = st.number_input("frequency_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.llm_openai_frequency_penalty, step=0.05)
             if st.session_state.selected_ai == "Ollama":
-                st.session_state.llm_ollama_repeat_penalty = st.number_input("repeat_penalty", min_value=0.00, value=st.session_state.llm_ollama_repeat_penalty, step=0.05, disabled=st.session_state.is_analyzed)
+                st.session_state.llm_ollama_repeat_penalty = st.number_input("repeat_penalty", min_value=0.00, value=st.session_state.llm_ollama_repeat_penalty, step=0.05)
 
         if st.session_state.selected_ai == "OpenAI":
             col_llm_openai_max_tokens, col_llm_openai_presence_penalty = st.sidebar.columns(2)
             with col_llm_openai_max_tokens:
-                st.session_state.llm_openai_max_tokens = st.number_input("max_tokens", min_value=1024, max_value=get_max_value_of_model_max_tokens(st.session_state.selected_llm), value=get_max_value_of_model_max_tokens(st.session_state.selected_llm), disabled=st.session_state.is_analyzed)
+                st.session_state.llm_openai_max_tokens = st.number_input("max_tokens", min_value=1024, max_value=get_max_value_of_model_max_tokens(st.session_state.selected_llm), value=get_max_value_of_model_max_tokens(st.session_state.selected_llm))
             with col_llm_openai_presence_penalty:
-                st.session_state.llm_openai_presence_penalty = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.llm_openai_presence_penalty, step=0.05, disabled=st.session_state.is_analyzed)
+                st.session_state.llm_openai_presence_penalty = st.number_input("presence_penalty", min_value=-2.00, max_value=2.00, value=st.session_state.llm_openai_presence_penalty, step=0.05)
         if st.session_state.selected_ai == "Ollama":
             col_llm_ollama_num_ctx, col_llm_ollama_num_predict = st.sidebar.columns(2)
             with col_llm_ollama_num_ctx:
-                st.session_state.llm_ollama_num_ctx = st.number_input("num_ctx", min_value=256, max_value=get_max_value_of_model_num_ctx(st.session_state.selected_llm), value=int(get_max_value_of_model_num_ctx(st.session_state.selected_llm) / 2), step=512, disabled=st.session_state.is_analyzed)
+                st.session_state.llm_ollama_num_ctx = st.number_input("num_ctx", min_value=256, max_value=get_max_value_of_model_num_ctx(st.session_state.selected_llm), value=int(get_max_value_of_model_num_ctx(st.session_state.selected_llm) / 2), step=512)
                 print(f"[DEBUG] (llm_ollama_num_ctx) {st.session_state.llm_ollama_num_ctx}")
             with col_llm_ollama_num_predict:
-                st.session_state.llm_ollama_num_predict = st.number_input("num_predict", value=int(get_max_value_of_model_num_predict(st.session_state.selected_llm) / 2), disabled=st.session_state.is_analyzed)
+                st.session_state.llm_ollama_num_predict = st.number_input("num_predict", value=int(get_max_value_of_model_num_predict(st.session_state.selected_llm) / 2))
                 print(f"[DEBUG] (llm_ollama_num_predict) {st.session_state.llm_ollama_num_predict}")
 
         ### Set OpenAI API Key
