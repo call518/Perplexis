@@ -2,6 +2,9 @@ __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
+### pip requirements generate
+# pip list --format=freeze > requirements.txt
+
 import os
 import re
 import shutil
