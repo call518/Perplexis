@@ -35,7 +35,7 @@ Enjoy your time with the RAG & Chat Application!
 # Tested Environments
 
 - `Python` : >= 3.9
-- `ollama` : >= 0.4
+- `ollama` : >= 0.6
 
 # Configure & Run
 
@@ -52,6 +52,10 @@ $ systemctl start ollama
 $ ollama pull gemma2:2b
 $ ollama pull gemma2:9b
 $ ollama pull gemma2:27b
+$ ollama pull gemma3:1b
+$ ollama pull gemma3:4b
+$ ollama pull gemma3:12b
+$ ollama pull gemma3:27b
 $ ollama pull mistral:7b
 $ ollama pull llama3.2:1b
 $ ollama pull llama3.2:3b

@@ -199,7 +199,7 @@ def main():
             if st.session_state.selected_ai == "OpenAI":
                 st.session_state.selected_llm = st.selectbox("AI LLM", ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], index=4)
             else:
-                st.session_state.selected_llm = st.selectbox("AI LLM", ["gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3.2:1b", "llama3:8b", "llama3.2:3b", "codegemma:2b", "codegemma:7b", "mistral:7b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "llama3-groq-tool-use:8b", "tulu3:8b", "call518/exaone3.5-32768ctx:2.4b", "call518/exaone3.5-32768ctx:7.8b", "call518/exaone3.5-32768ctx:32b"], index=0)
+                st.session_state.selected_llm = st.selectbox("AI LLM", ["gemma3:1b", "gemma3:4b", "gemma3:12b", "gemma3:27b", "gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3.2:1b", "llama3:8b", "llama3.2:3b", "codegemma:2b", "codegemma:7b", "mistral:7b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "llama3-groq-tool-use:8b", "tulu3:8b", "call518/exaone3.5-32768ctx:2.4b", "call518/exaone3.5-32768ctx:7.8b", "call518/exaone3.5-32768ctx:32b"], index=0)
         with col_ai_temperature:
             # st.session_state['temperature'] = st.text_input("LLM Temperature (0.0 ~ 1.0)", value=st.session_state['temperature'])
             st.session_state.temperature = st.number_input("AI Temperature", min_value=0.00, max_value=1.00, value=st.session_state.temperature, step=0.05)
