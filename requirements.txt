@@ -171,7 +171,7 @@ requests-toolbelt==1.0.0
 rich==13.9.4
 rpds-py==0.21.0
 rsa==4.9
-setuptools==75.1.0
+setuptools==78.1.1
 sgmllib3k==1.0.0
 shapely==2.0.6
 shellingham==1.5.4
