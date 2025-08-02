@@ -64,6 +64,7 @@ $ ollama pull codegemma:7b
 $ ollama pull llama3:8b
 
 (Select some Embedding Model you need)
+$ ollama pull bge-large:335m
 $ ollama pull bge-m3:567m
 $ ollama pull all-minilm:22m
 $ ollama pull all-minilm:33m

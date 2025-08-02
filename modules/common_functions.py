@@ -89,6 +89,7 @@ def get_max_value_of_model_embedding_dimensions(model_name):
         ### Olllama
         "call518/EEVE-8192ctx:10.8b-q4": 4096,
         "call518/EEVE-8192ctx:10.8b-q5": 4096,
+        "bge-large:335m": 1024,
         "bge-m3:567m": 1024,
         "all-minilm:22m": 384,
         "all-minilm:33m": 384,

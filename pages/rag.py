@@ -216,6 +216,8 @@ url_pattern = re.compile(
 def google_search(query, num_results=10, lang="English(en)"):
     results_list = []
     lang = re.search(r"\((.*?)\)", lang).group(1)
+    if num_results > 10:
+        num_results = 10
     try:
         ### (최우선) Google Custom Search API 우선 사용
         if os.environ.get("GOOGLE_API_KEY") and os.environ.get("GOOGLE_CSE_ID"):
@@ -225,7 +227,7 @@ def google_search(query, num_results=10, lang="English(en)"):
                 "key" : os.environ.get('GOOGLE_API_KEY'),
                 "cx" : os.environ.get('GOOGLE_CSE_ID'),
                 "q" : query,
-                "num": 10, # Maxixum 10
+                "num": num_results, # Maxixum 10
                 "lr": f'lang_{lang}',
                 "hl": lang,
             })
@@ -398,7 +400,7 @@ def main():
         if st.session_state.selected_embedding_provider == "OpenAI":
             st.session_state.selected_embedding_model = st.selectbox("Embedding Model", ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"], index=0,  disabled=st.session_state.is_analyzed)
         else:
-            st.session_state.selected_embedding_model = st.selectbox("Embedding Model", ["bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3:8b", "llama3.2:1b", "llama3.2:3b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "llama3-groq-tool-use:8b", "call518/tulu3-131072ctx:8b", "call518/exaone3.5-32768ctx:2.4b", "call518/exaone3.5-32768ctx:7.8b", "call518/exaone3.5-32768ctx:32b"], index=4, disabled=st.session_state.is_analyzed)
+            st.session_state.selected_embedding_model = st.selectbox("Embedding Model", ["bge-large:335m", "bge-m3:567m", "all-minilm:22m", "all-minilm:33m", "nomic-embed-text", "mxbai-embed-large", "gemma2:2b", "gemma2:9b", "gemma2:27b", "call518/gemma2-uncensored-8192ctx:9b", "mistral:7b", "llama3:8b", "llama3.2:1b", "llama3.2:3b", "call518/deepseek-r1-32768ctx:8b", "call518/deepseek-r1-32768ctx:14b", "call518/EEVE-8192ctx:10.8b-q4", "call518/EEVE-8192ctx:10.8b-q5", "llama3-groq-tool-use:8b", "call518/tulu3-131072ctx:8b", "call518/exaone3.5-32768ctx:2.4b", "call518/exaone3.5-32768ctx:7.8b", "call518/exaone3.5-32768ctx:32b"], index=4, disabled=st.session_state.is_analyzed)
 
         st.session_state.selected_embedding_dimension = get_max_value_of_model_embedding_dimensions(st.session_state.selected_embedding_model)
         print(f"[DEBUG] (selected_embedding_model) {st.session_state.selected_embedding_model}")
